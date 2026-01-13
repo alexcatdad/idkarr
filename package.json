@@ -1,0 +1,31 @@
+{
+  "name": "idkarr",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Unified media management - Sonarr + Radarr + Overseerr + Prowlarr",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "bun run --filter '*' dev",
+    "dev:backend": "bun run --filter @idkarr/backend dev",
+    "dev:frontend": "bun run --filter @idkarr/frontend dev",
+    "build": "bun run --filter '*' build",
+    "test": "bun run --filter '*' test",
+    "typecheck": "bun run --filter '*' typecheck",
+    "lint": "bun run --filter '*' lint",
+    "lint:fix": "bun run --filter '*' lint:fix",
+    "db:generate": "bun run --filter @idkarr/backend db:generate",
+    "db:migrate": "bun run --filter @idkarr/backend db:migrate",
+    "db:seed": "bun run --filter @idkarr/backend db:seed",
+    "clean": "rm -rf node_modules packages/*/node_modules packages/*/dist"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.1.14",
+    "typescript": "^5.7.2"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "packageManager": "bun@1.1.14"
+}

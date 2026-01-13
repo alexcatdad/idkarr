@@ -1,0 +1,33 @@
+# Development Dockerfile for idkarr
+FROM oven/bun:1.1-alpine
+
+WORKDIR /app
+
+# Install system dependencies
+RUN apk add --no-cache \
+    git \
+    python3 \
+    make \
+    g++ \
+    openssl
+
+# Copy package files
+COPY package.json bun.lockb* ./
+COPY packages/backend/package.json ./packages/backend/
+COPY packages/shared/package.json ./packages/shared/
+
+# Install dependencies
+RUN bun install
+
+# Copy source files
+COPY . .
+
+# Expose port
+EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
+    CMD wget --no-verbose --tries=1 --spider http://localhost:3000/health || exit 1
+
+# Start development server
+CMD ["bun", "run", "dev:backend"]
