@@ -2,6 +2,7 @@
 	import { PUBLIC_CONVEX_URL } from "$env/static/public";
 	import { setupConvex } from "convex-svelte";
 	import favicon from "$lib/assets/favicon.svg";
+	import "../app.css";
 
 	const { children } = $props();
 
