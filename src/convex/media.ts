@@ -1,23 +1,19 @@
-import { query, mutation } from "./_generated/server";
 import { v } from "convex/values";
+import { mutation, query } from "./_generated/server";
 
 // List all media with optional filtering
 export const list = query({
 	args: {
 		mediaType: v.optional(
-			v.union(
-				v.literal("tv"),
-				v.literal("movie"),
-				v.literal("anime"),
-				v.literal("music"),
-			),
+			v.union(v.literal("tv"), v.literal("movie"), v.literal("anime"), v.literal("music")),
 		),
 	},
 	handler: async (ctx, args) => {
-		if (args.mediaType) {
+		const { mediaType } = args;
+		if (mediaType) {
 			return await ctx.db
 				.query("media")
-				.withIndex("by_type", (q) => q.eq("mediaType", args.mediaType!))
+				.withIndex("by_type", (q) => q.eq("mediaType", mediaType))
 				.collect();
 		}
 		return await ctx.db.query("media").collect();
@@ -35,12 +31,7 @@ export const get = query({
 // Add new media
 export const add = mutation({
 	args: {
-		mediaType: v.union(
-			v.literal("tv"),
-			v.literal("movie"),
-			v.literal("anime"),
-			v.literal("music"),
-		),
+		mediaType: v.union(v.literal("tv"), v.literal("movie"), v.literal("anime"), v.literal("music")),
 		title: v.string(),
 		year: v.optional(v.number()),
 		overview: v.optional(v.string()),

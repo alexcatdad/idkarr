@@ -54,13 +54,23 @@
 	},
 	"overrides": [
 		{
-			"includes": ["*.svelte"],
+			"includes": ["**/*.svelte"],
 			"linter": {
 				"rules": {
 					"style": {
 						"useConst": "off"
+					},
+					"correctness": {
+						"noUnusedVariables": "off",
+						"noUnusedImports": "off"
 					}
 				}
+			}
+		},
+		{
+			"includes": ["**/convex/_generated/**"],
+			"linter": {
+				"enabled": false
 			}
 		}
 	]

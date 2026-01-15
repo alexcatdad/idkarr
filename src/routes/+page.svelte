@@ -1,10 +1,10 @@
 <script lang="ts">
-	import { useQuery } from "convex-svelte";
-	import { api } from "../convex/_generated/api";
-	import { Button } from "$lib/components/ui/button";
-	import { theme } from "$lib/stores/theme";
+import { useQuery } from "convex-svelte";
+import { Button } from "$lib/components/ui/button";
+import { theme } from "$lib/stores/theme";
+import { api } from "../convex/_generated/api";
 
-	const mediaQuery = useQuery(api.media.list, {});
+const mediaQuery = useQuery(api.media.list, {});
 </script>
 
 <main class="min-h-screen p-8">
@@ -23,13 +23,13 @@
 			</Button>
 		</div>
 
-		{#if $mediaQuery.isLoading}
+		{#if mediaQuery.isLoading}
 			<div class="rounded-lg border bg-card p-6">
 				<p class="text-muted-foreground">Loading...</p>
 			</div>
-		{:else if $mediaQuery.error}
+		{:else if mediaQuery.error}
 			<div class="rounded-lg border border-destructive bg-destructive/10 p-6">
-				<p class="text-destructive">Error: {$mediaQuery.error.message}</p>
+				<p class="text-destructive">Error: {mediaQuery.error.message}</p>
 			</div>
 		{:else}
 			<div class="rounded-lg border bg-card p-6 mb-6">
@@ -45,7 +45,7 @@
 				<h2 class="text-lg font-semibold mb-1">Library</h2>
 				<p class="text-sm text-muted-foreground mb-4">Your media collection</p>
 				<p class="text-muted-foreground mb-4">
-					{$mediaQuery.data?.length ?? 0} items in library
+					{mediaQuery.data?.length ?? 0} items in library
 				</p>
 				<Button>Add Media</Button>
 			</div>
