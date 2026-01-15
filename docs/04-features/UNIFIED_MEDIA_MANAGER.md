@@ -1,10 +1,10 @@
-# Unified Media Manager (idkarr) - TV Series & Movies
+# Unified Media Manager (idkarr) - TV Series, Movies, Anime & Music
 
 ---
 
 ## Problem Statement
 
-### Current Separation (Sonarr + Radarr)
+### Current Separation (Sonarr + Radarr + Lidarr)
 
 **Sonarr** (TV Series):
 - Episodic content with seasons
@@ -20,11 +20,18 @@
 - Single file per movie
 - No seasons or episodes
 
+**Lidarr** (Music):
+- Artist/Album/Track hierarchy
+- MusicBrainz metadata
+- Release group handling (original, remaster, deluxe)
+- Audio quality profiles (FLAC, MP3, etc.)
+- Multiple releases per album
+
 **Why They're Currently Separate:**
 1. **Historical reasons**: Started as separate forks of NZBDrone
-2. **Different data models**: TV has seasons/episodes, movies don't
-3. **Different metadata sources**: TV uses TVDB, movies use TMDB
-4. **Different naming conventions**: TV needs S01E01, movies just need Title.Year
+2. **Different data models**: TV has seasons/episodes, movies don't, music has artists/albums/tracks
+3. **Different metadata sources**: TV uses TVDB, movies use TMDB, music uses MusicBrainz
+4. **Different naming conventions**: TV needs S01E01, movies need Title.Year, music needs Artist/Album/Track
 5. **Different parsing logic**: Release parsing differs significantly
 6. **Separate development teams**: Different maintainers, different priorities
 
@@ -44,18 +51,18 @@
 - Same calendar view
 
 **User Experience Issues with Separate Apps:**
-- Two separate installations (double resource usage)
-- Two separate databases (no shared configuration)
-- Two separate web UIs (different URLs, different logins)
+- Three+ separate installations (triple resource usage)
+- Three separate databases (no shared configuration)
+- Three separate web UIs (different URLs, different logins)
 - Duplicate configuration (indexers, download clients, notifications)
 - Separate quality profiles (can't reuse across apps)
 - Separate histories (can't see all downloads in one place)
 - Separate queues (harder to manage overall download status)
-- Separate instances for anime (3+ installations total)
+- Separate instances for anime (4+ installations total)
 
 **Technical Debt:**
-- 95% duplicate code between Sonarr and Radarr
-- Separate release to maintain and update
+- 95% duplicate code between Sonarr, Radarr, and Lidarr
+- Separate releases to maintain and update
 - Separate bugs and features
 - Separate documentation
 - Separate communities and support
@@ -64,54 +71,55 @@
 
 ## Unified Architecture
 
-### idkarr - Single Application for TV & Movies
+### idkarr - Single Application for TV, Movies, Anime & Music
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│                      idkarr (Unified)                        │
-│                                                               │
-│  ┌───────────────────────────────────────────────────────┐  │
-│  │                 Content Types                          │  │
-│  │                                                       │  │
-│  │  ┌──────────────┐  ┌──────────────┐  ┌─────────────┐ │  │
-│  │  │   TV Series  │  │    Movies    │  │   Anime     │ │  │
-│  │  │              │  │              │  │             │ │  │
-│  │  │ - Episodes   │  │ - Single     │  │ - Episodes  │ │  │
-│  │  │ - Seasons    │  │ - Year       │  │ - Seasons   │ │  │
-│  │  │ - TVDB       │  │ - TMDB       │  │ - AniDB     │ │  │
-│  │  └──────────────┘  └──────────────┘  └─────────────┘ │  │
-│  │                                                       │  │
-│  └───────────────────────────────────────────────────────┘  │
-│                           │                                 │
-│        ┌──────────────────┼──────────────────┐            │
-│        │                  │                  │            │
-┌───────▼─────────┐ ┌────────▼─────────┐ ┌──────▼──────────┐ │
-│  Shared Core    │ │  Shared Core    │ │  Shared Core    │ │
-│                 │ │                 │ │                 │ │
-│ • Metadata      │ │ • Download      │ │ • Quality       │ │
-│   (TVDB/TMDB)   │ │   Clients       │ │   Profiles      │ │
-│ • Indexers      │ │ • Queue         │ │ • Custom        │ │
-│ • Search        │ │ • History       │ │   Formats       │ │
-│ • Import        │ │ • Notifications │ │ • Tags          │ │
-│   Lists         │ │ • Calendar      │ │ • Root Folders  │ │
-│ • Release       │ │ • Wanted        │ │ • Settings      │ │
-│   Parsing       │ │ • Health        │ │ • Users         │ │
-│                 │ │                 │ │ • Permissions   │ │
-└─────────────────┘ └─────────────────┘ └─────────────────┘ │
-└─────────────────────────────────────────────────────────────┘
-                            │
-        ┌───────────────────┼───────────────────┐
-        │                   │                   │
-┌───────▼────────┐  ┌───────▼────────┐  ┌──────▼────────┐
-│  Postgres DB  │  │  Redis Cache  │  │ BullMQ Queue │
-└───────────────┘  └───────────────┘  └───────────────┘
+┌──────────────────────────────────────────────────────────────────────────────┐
+│                            idkarr (Unified)                                   │
+│                                                                               │
+│  ┌────────────────────────────────────────────────────────────────────────┐  │
+│  │                           Content Types                                 │  │
+│  │                                                                         │  │
+│  │  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐  ┌─────────────┐   │  │
+│  │  │  TV Series  │  │   Movies    │  │    Anime    │  │    Music    │   │  │
+│  │  │             │  │             │  │             │  │             │   │  │
+│  │  │ - Episodes  │  │ - Single    │  │ - Episodes  │  │ - Artists   │   │  │
+│  │  │ - Seasons   │  │ - Year      │  │ - Seasons   │  │ - Albums    │   │  │
+│  │  │ - TVDB      │  │ - TMDB      │  │ - AniDB     │  │ - Tracks    │   │  │
+│  │  │             │  │             │  │             │  │ - MusicBrainz│  │  │
+│  │  └─────────────┘  └─────────────┘  └─────────────┘  └─────────────┘   │  │
+│  │                                                                         │  │
+│  └────────────────────────────────────────────────────────────────────────┘  │
+│                                    │                                          │
+│        ┌───────────────────────────┼───────────────────────────┐             │
+│        │                           │                           │             │
+│  ┌─────▼───────────┐  ┌────────────▼────────────┐  ┌──────────▼──────────┐  │
+│  │  Shared Core    │  │     Shared Core         │  │    Shared Core      │  │
+│  │                 │  │                         │  │                     │  │
+│  │ • Metadata      │  │ • Download Clients      │  │ • Quality Profiles  │  │
+│  │   (TVDB/TMDB/   │  │ • Queue                 │  │ • Custom Formats    │  │
+│  │    MusicBrainz) │  │ • History               │  │ • Tags              │  │
+│  │ • Indexers      │  │ • Notifications         │  │ • Root Folders      │  │
+│  │ • Search        │  │ • Calendar              │  │ • Settings          │  │
+│  │ • Import Lists  │  │ • Wanted                │  │ • Users             │  │
+│  │ • Release       │  │ • Health                │  │ • Permissions       │  │
+│  │   Parsing       │  │                         │  │                     │  │
+│  └─────────────────┘  └─────────────────────────┘  └─────────────────────┘  │
+│                                                                               │
+└──────────────────────────────────────────────────────────────────────────────┘
+                                     │
+             ┌───────────────────────┼───────────────────────┐
+             │                       │                       │
+      ┌──────▼────────┐       ┌──────▼────────┐       ┌──────▼────────┐
+      │  Postgres DB  │       │  Redis Cache  │       │ BullMQ Queue  │
+      └───────────────┘       └───────────────┘       └───────────────┘
 ```
 
 ### Key Design Decisions
 
 #### 1. **Unified Content Model**
-- Single `Media` table with `contentType` field ('series', 'movie', 'anime')
-- Polymorphic relationships for episodes vs movie files
+- Single `Media` table with `contentType` field ('series', 'movie', 'anime', 'music')
+- Polymorphic relationships for episodes vs movie files vs tracks
 - Type-specific metadata stored in JSONB
 - Unified search across all content types
 
@@ -119,17 +127,17 @@
 - Single database with unified schema
 - Single queue for all downloads
 - Shared download clients, indexers, notifications
-- Unified quality profiles and custom formats
+- Unified quality profiles and custom formats (video and audio)
 - Single authentication/authorization system
 
 #### 3. **Type-Specific Logic**
 - Content type services handle type-specific operations
-- Metadata adapters for TVDB, TMDB, AniDB
+- Metadata adapters for TVDB, TMDB, AniDB, MusicBrainz
 - Release parsers for each content type
 - Different UI components per content type
 
 #### 4. **Multi-Instance Support**
-- Instances can be content-type specific (TV instance, Movie instance, Anime instance)
+- Instances can be content-type specific (TV instance, Movie instance, Anime instance, Music instance)
 - Or mixed-content instances (all content types in one)
 - Instance-level filtering and access control
 
@@ -148,6 +156,7 @@ export const contentTypeEnum = pgEnum('content_type', [
   'series', // TV series (standard)
   'anime', // Anime series
   'movie', // Movies
+  'music', // Music (artists/albums/tracks)
 ]);
 
 export const seriesStatusEnum = pgEnum('series_status', [
@@ -164,6 +173,19 @@ export const movieStatusEnum = pgEnum('movie_status', [
   'deleted',
 ]);
 
+export const artistStatusEnum = pgEnum('artist_status', [
+  'active',
+  'ended',
+  'disbanded',
+  'deleted',
+]);
+
+export const albumStatusEnum = pgEnum('album_status', [
+  'released',
+  'announced',
+  'deleted',
+]);
+
 export const seriesTypeEnum = pgEnum('series_type', [
   'standard',
   'anime',
@@ -176,6 +198,36 @@ export const movieTypeEnum = pgEnum('movie_type', [
   'anime-movie',
   'documentary',
   'standup',
+]);
+
+export const artistTypeEnum = pgEnum('artist_type', [
+  'person',
+  'group',
+  'orchestra',
+  'choir',
+  'character',
+  'other',
+]);
+
+export const albumTypeEnum = pgEnum('album_type', [
+  'album',
+  'ep',
+  'single',
+  'broadcast',
+  'compilation',
+  'soundtrack',
+  'live',
+  'remix',
+  'other',
+]);
+
+export const releaseTypeEnum = pgEnum('release_type', [
+  'original',
+  'remaster',
+  'deluxe',
+  'anniversary',
+  'expanded',
+  'collectors',
 ]);
 ```
 
@@ -245,7 +297,24 @@ export const media = pgTable('media', {
   runtime: integer('runtime'), // Minutes
   genres: jsonb('genres').$type<string[]>(),
   certification: text('certification'), // PG-13, R, etc.
-  
+
+  // --- Music/Artist Specific ---
+  musicBrainzId: text('musicbrainz_id'), // MusicBrainz artist MBID
+  discogsId: integer('discogs_id'),
+  artistType: text('artist_type'), // 'person', 'group', 'orchestra', etc.
+  disambiguation: text('disambiguation'), // For artists with same name
+  members: jsonb('members').$type<Array<{
+    name: string;
+    musicBrainzId?: string;
+    instrument?: string;
+    active: boolean;
+  }>>(),
+  links: jsonb('links').$type<Array<{
+    type: string; // 'official', 'wikipedia', 'discogs', 'lastfm', etc.
+    url: string;
+  }>>(),
+  albumCount: integer('album_count'),
+
   // --- Configuration ---
   type: text('type'), // 'standard', 'anime', 'movie', 'anime-movie', etc.
   qualityProfileId: integer('quality_profile_id').notNull(),
@@ -300,9 +369,10 @@ export const mediaRelations = relations(media, ({ one, many }) => ({
     fields: [media.instanceId],
     references: [instance.id],
   }),
-  // Polymorphic: either episodes (TV/anime) or movieFiles (movies)
+  // Polymorphic: episodes (TV/anime), movieFiles (movies), or albums/tracks (music)
   episodes: many(episode),
   movieFiles: many(movieFile),
+  albums: many(album), // Music: artist has many albums
   history: many(history),
   queueItems: many(queue),
 }));
@@ -552,6 +622,249 @@ export const movieFileRelations = relations(movieFile, ({ one }) => ({
 }));
 ```
 
+### Album Table (Music)
+
+```typescript
+// backend/db/schema/album.schema.ts
+
+import { boolean, integer, jsonb, pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
+import { relations } from 'drizzle-orm';
+import { instance } from './instance.schema';
+import { media } from './media.schema';
+
+export const album = pgTable('album', {
+  id: serial('id').primaryKey(),
+  instanceId: integer('instance_id').notNull().references(() => instance.id, { onDelete: 'cascade' }),
+  artistId: integer('artist_id').notNull().references(() => media.id, { onDelete: 'cascade' }), // References music artist in media table
+
+  // MusicBrainz IDs
+  musicBrainzId: text('musicbrainz_id').notNull(), // Release Group MBID
+  musicBrainzReleaseId: text('musicbrainz_release_id'), // Specific Release MBID
+  discogsId: integer('discogs_id'),
+
+  // Album Info
+  title: text('title').notNull(),
+  titleSlug: text('title_slug').notNull(),
+  overview: text('overview'),
+  disambiguation: text('disambiguation'), // For albums with same name
+
+  // Album Type and Status
+  albumType: text('album_type').notNull(), // 'album', 'ep', 'single', 'compilation', etc.
+  secondaryTypes: jsonb('secondary_types').$type<string[]>(), // ['live', 'remix', 'soundtrack']
+  status: text('status').notNull(), // 'released', 'announced'
+
+  // Release Info
+  releaseDate: timestamp('release_date'),
+  releaseYear: integer('release_year'),
+  releaseType: text('release_type'), // 'original', 'remaster', 'deluxe', 'anniversary'
+  label: text('label'), // Record label
+
+  // Track Info
+  trackCount: integer('track_count'),
+  discCount: integer('disc_count').default(1),
+  duration: integer('duration'), // Total duration in milliseconds
+
+  // Images
+  images: jsonb('images').$type<Array<{
+    coverType: 'cover' | 'disc' | 'logo' | 'banner';
+    url: string;
+  }>>(),
+
+  // Genres and Tags
+  genres: jsonb('genres').$type<string[]>(),
+  styles: jsonb('styles').$type<string[]>(), // More specific than genres
+
+  // Configuration
+  monitored: boolean('monitored').notNull().default(true),
+  qualityProfileId: integer('quality_profile_id').notNull(),
+  metadataProfileId: integer('metadata_profile_id'),
+
+  // Folder/Path
+  relativePath: text('relative_path'),
+  path: text('path'),
+
+  // Ratings
+  ratings: jsonb('ratings').$type<{
+    votes: number;
+    value: number;
+  }>(),
+
+  // Statistics
+  statistics: jsonb('statistics').$type<{
+    trackFileCount: number;
+    trackCount: number;
+    totalTrackCount: number;
+    sizeOnDisk: number;
+    percentOfTracks: number;
+  }>(),
+
+  // Metadata
+  added: timestamp('added').notNull().defaultNow(),
+  lastInfoSync: timestamp('last_info_sync'),
+  lastDiskSync: timestamp('last_disk_sync'),
+});
+
+export const albumRelations = relations(album, ({ one, many }) => ({
+  instance: one(instance, {
+    fields: [album.instanceId],
+    references: [instance.id],
+  }),
+  artist: one(media, {
+    fields: [album.artistId],
+    references: [media.id],
+  }),
+  tracks: many(track),
+  trackFiles: many(trackFile),
+}));
+```
+
+### Track Table (Music)
+
+```typescript
+// backend/db/schema/track.schema.ts
+
+import { boolean, integer, jsonb, pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
+import { relations } from 'drizzle-orm';
+import { instance } from './instance.schema';
+import { album } from './album.schema';
+
+export const track = pgTable('track', {
+  id: serial('id').primaryKey(),
+  instanceId: integer('instance_id').notNull().references(() => instance.id, { onDelete: 'cascade' }),
+  albumId: integer('album_id').notNull().references(() => album.id, { onDelete: 'cascade' }),
+
+  // MusicBrainz IDs
+  musicBrainzId: text('musicbrainz_id').notNull(), // Recording MBID
+  musicBrainzTrackId: text('musicbrainz_track_id'), // Track MBID (specific to release)
+
+  // Track Info
+  title: text('title').notNull(),
+  trackNumber: integer('track_number').notNull(),
+  discNumber: integer('disc_number').notNull().default(1),
+  absoluteTrackNumber: integer('absolute_track_number'), // Track number across all discs
+  duration: integer('duration'), // Duration in milliseconds
+
+  // Additional Artists (features, etc.)
+  artistCredits: jsonb('artist_credits').$type<Array<{
+    artistId?: number;
+    name: string;
+    musicBrainzId?: string;
+    creditedAs?: string;
+    joinPhrase?: string; // ' feat. ', ' & ', etc.
+  }>>(),
+
+  // Track Status
+  hasFile: boolean('has_file').notNull().default(false),
+  monitored: boolean('monitored').notNull().default(true),
+  explicit: boolean('explicit').default(false),
+
+  // File Info
+  trackFileId: integer('track_file_id').references(() => trackFile.id),
+
+  // Ratings
+  ratings: jsonb('ratings').$type<{
+    votes: number;
+    value: number;
+  }>(),
+
+  // Metadata
+  added: timestamp('added').notNull().defaultNow(),
+});
+
+export const trackRelations = relations(track, ({ one }) => ({
+  instance: one(instance, {
+    fields: [track.instanceId],
+    references: [instance.id],
+  }),
+  album: one(album, {
+    fields: [track.albumId],
+    references: [album.id],
+  }),
+  trackFile: one(trackFile, {
+    fields: [track.trackFileId],
+    references: [trackFile.id],
+  }),
+}));
+```
+
+### Track Files Table (Music)
+
+```typescript
+// backend/db/schema/trackFile.schema.ts
+
+import { integer, jsonb, pgTable, serial, text, timestamp } from 'drizzle-orm/pg-core';
+import { relations } from 'drizzle-orm';
+import { instance } from './instance.schema';
+import { album } from './album.schema';
+
+export const trackFile = pgTable('track_file', {
+  id: serial('id').primaryKey(),
+  instanceId: integer('instance_id').notNull().references(() => instance.id, { onDelete: 'cascade' }),
+  albumId: integer('album_id').notNull().references(() => album.id, { onDelete: 'cascade' }),
+
+  // Track Numbers (can be multi-track files for vinyl rips)
+  trackNumbers: jsonb('track_numbers').notNull().$type<number[]>(),
+  discNumber: integer('disc_number').notNull().default(1),
+
+  // File Info
+  relativePath: text('relative_path').notNull(),
+  path: text('path').notNull(),
+  size: integer('size').notNull(), // Bytes
+  dateAdded: timestamp('date_added').notNull(),
+  modified: timestamp('modified').notNull(),
+
+  // Audio Quality
+  quality: jsonb('quality').$type<{
+    quality: {
+      id: number;
+      name: string; // 'FLAC', 'MP3-320', 'MP3-V0', 'AAC-256', etc.
+      source: string; // 'cd', 'vinyl', 'web', 'cassette'
+    };
+    revision: {
+      version: number;
+      real: number;
+      isRepack: boolean;
+    };
+  }>(),
+
+  // Audio Info (from file analysis)
+  audioInfo: jsonb('audio_info').$type<{
+    audioCodec: string; // 'FLAC', 'MP3', 'AAC', 'ALAC', 'OPUS', 'VORBIS'
+    audioBitrate: number; // kbps (e.g., 320, 256, variable)
+    audioBitDepth?: number; // 16, 24, 32 for lossless
+    audioSampleRate: number; // Hz (44100, 48000, 96000, etc.)
+    audioChannels: number; // 2 for stereo, 1 for mono
+    duration: number; // milliseconds
+    format: string; // 'flac', 'mp3', 'm4a', 'ogg', 'opus'
+  }>(),
+
+  // Scene Info
+  sceneName: text('scene_name'),
+  releaseGroup: text('release_group'),
+
+  // Custom Formats
+  customFormats: jsonb('custom_formats').$type<Array<{
+    id: number;
+    name: string;
+  }>>(),
+  customFormatScore: integer('custom_format_score').notNull().default(0),
+
+  // Metadata
+  added: timestamp('added').notNull().defaultNow(),
+});
+
+export const trackFileRelations = relations(trackFile, ({ one }) => ({
+  instance: one(instance, {
+    fields: [trackFile.instanceId],
+    references: [instance.id],
+  }),
+  album: one(album, {
+    fields: [trackFile.albumId],
+    references: [album.id],
+  }),
+}));
+```
+
 ### History Table (Unified)
 
 ```typescript
@@ -571,21 +884,26 @@ export const historyEventTypeEnum = pgEnum('history_event_type', [
   'downloadImported',
   'movieFolderImported',
   'movieFileImported',
+  'albumImported',
+  'trackFileImported',
+  'artistFolderImported',
 ]);
 
 export const history = pgTable('history', {
   id: serial('id').primaryKey(),
   instanceId: integer('instance_id').notNull().references(() => instance.id, { onDelete: 'cascade' }),
-  
+
   // Content Type
   contentType: contentTypeEnum('content_type').notNull(),
   mediaId: integer('media_id').notNull().references(() => media.id, { onDelete: 'cascade' }),
-  
-  // Episode/Season/Movie Info (nullable based on content type)
+
+  // Episode/Season/Movie/Album/Track Info (nullable based on content type)
   episodeId: integer('episode_id'), // For TV/anime
   seasonNumber: integer('season_number'), // For TV/anime
   movieFileId: integer('movie_file_id'), // For movies
-  
+  albumId: integer('album_id'), // For music
+  trackFileId: integer('track_file_id'), // For music
+
   // Release Info
   sourceTitle: text('source_title').notNull(),
   quality: jsonb('quality').$type<{
@@ -668,16 +986,18 @@ export const queueStateEnum = pgEnum('queue_state', [
 export const queue = pgTable('queue', {
   id: serial('id').primaryKey(),
   instanceId: integer('instance_id').notNull().references(() => instance.id, { onDelete: 'cascade' }),
-  
+
   // Content Type
   contentType: contentTypeEnum('content_type').notNull(),
   mediaId: integer('media_id').notNull().references(() => media.id, { onDelete: 'cascade' }),
-  
-  // Episode/Season/Movie Info (nullable based on content type)
+
+  // Episode/Season/Movie/Album Info (nullable based on content type)
   episodeId: integer('episode_id'), // For TV/anime
   seasonNumber: integer('season_number'), // For TV/anime
   movieFileId: integer('movie_file_id'), // For movies
   edition: text('edition'), // For movies
+  albumId: integer('album_id'), // For music
+  releaseType: text('release_type'), // For music ('original', 'remaster', etc.)
   
   // Download Info
   title: text('title').notNull(),
@@ -800,7 +1120,7 @@ import { integer, jsonb, pgEnum, pgTable, serial, text, timestamp } from 'drizzl
 import { relations } from 'drizzle-orm';
 import { instance } from './instance.schema';
 
-export const rootFolderTypeEnum = pgEnum('root_folder_type', ['series', 'anime', 'movie']);
+export const rootFolderTypeEnum = pgEnum('root_folder_type', ['series', 'anime', 'movie', 'music']);
 
 export const rootFolder = pgTable('root_folder', {
   id: serial('id').primaryKey(),
@@ -808,14 +1128,18 @@ export const rootFolder = pgTable('root_folder', {
   
   path: text('path').notNull(),
   name: text('name').notNull(),
-  type: rootFolderTypeEnum('type').notNull(), // 'series', 'anime', 'movie'
-  
+  type: rootFolderTypeEnum('type').notNull(), // 'series', 'anime', 'movie', 'music'
+
   // Folder configuration
   defaultTags: jsonb('default_tags').$type<number[]>([]),
   defaultQualityProfileId: integer('default_quality_profile_id'),
   defaultMetadataProfileId: integer('default_metadata_profile_id'),
-  defaultMonitorType: text('default_monitor_type'), // 'all', 'future', 'missing', 'none', 'latestSeason'
+  defaultMonitorType: text('default_monitor_type'), // 'all', 'future', 'missing', 'none', 'latestSeason', 'latestAlbum'
   defaultLanguageProfileId: integer('default_language_profile_id'),
+
+  // Music-specific folder configuration
+  defaultArtistFolderFormat: text('default_artist_folder_format'), // '{Artist Name}'
+  defaultAlbumFolderFormat: text('default_album_folder_format'), // '{Album Title} ({Release Year})'
   
   // Space info
   freeSpace: integer('free_space').notNull(), // Bytes
@@ -849,11 +1173,12 @@ export const rootFolderRelations = relations(rootFolder, ({ one }) => ({
 // backend/core/metadata/services/metadata.service.ts
 
 import { db } from '@/db/client';
-import { media, episode, movieFile } from '@/db/schema';
+import { media, episode, movieFile, album, track } from '@/db/schema';
 import { ContentType } from '@/types/models/media';
 import { TVDBMetadataService } from './tvdb.service';
 import { TMDBMetadataService } from './tmdb.service';
 import { AniDBMetadataService } from './anidb.service';
+import { MusicBrainzMetadataService } from './musicbrainz.service';
 
 interface MediaMetadata {
   title: string;
@@ -904,9 +1229,10 @@ export class MetadataService {
   private tvdbService = new TVDBMetadataService();
   private tmdbService = new TMDBMetadataService();
   private anidbService = new AniDBMetadataService();
+  private musicBrainzService = new MusicBrainzMetadataService();
   
   /**
-   * Search for media (unified search across TVDB and TMDB)
+   * Search for media (unified search across TVDB, TMDB, and MusicBrainz)
    */
   async search(term: string, type?: ContentType): Promise<Array<{
     type: ContentType;
@@ -917,10 +1243,10 @@ export class MetadataService {
     overview?: string;
   }>> {
     const results: Array<any> = [];
-    
+
     // Only search specified types
-    const searchTypes = type ? [type] : ['series', 'anime', 'movie'];
-    
+    const searchTypes = type ? [type] : ['series', 'anime', 'movie', 'music'];
+
     if (searchTypes.includes('series') || searchTypes.includes('anime')) {
       // Search TVDB for TV series and anime
       const tvdbResults = await this.tvdbService.search(term);
@@ -935,7 +1261,7 @@ export class MetadataService {
         })),
       );
     }
-    
+
     if (searchTypes.includes('anime')) {
       // Search AniDB for anime
       const anidbResults = await this.anidbService.search(term);
@@ -950,7 +1276,7 @@ export class MetadataService {
         })),
       );
     }
-    
+
     if (searchTypes.includes('movie')) {
       // Search TMDB for movies
       const tmdbResults = await this.tmdbService.search(term);
@@ -965,7 +1291,22 @@ export class MetadataService {
         })),
       );
     }
-    
+
+    if (searchTypes.includes('music')) {
+      // Search MusicBrainz for artists
+      const musicBrainzResults = await this.musicBrainzService.searchArtists(term);
+      results.push(
+        ...musicBrainzResults.map((r) => ({
+          type: 'music' as ContentType,
+          id: r.musicBrainzId,
+          title: r.name,
+          year: r.beginYear,
+          poster: r.image,
+          overview: r.disambiguation,
+        })),
+      );
+    }
+
     return results;
   }
   
@@ -979,9 +1320,72 @@ export class MetadataService {
         return this.getSeriesMetadata(id as number);
       case 'movie':
         return this.getMovieMetadata(id as number);
+      case 'music':
+        return this.getArtistMetadata(id as string);
       default:
         throw new Error(`Unknown content type: ${type}`);
     }
+  }
+
+  /**
+   * Get artist metadata from MusicBrainz
+   */
+  private async getArtistMetadata(musicBrainzId: string): Promise<MediaMetadata> {
+    const metadata = await this.musicBrainzService.getArtist(musicBrainzId);
+    return {
+      title: metadata.name,
+      overview: metadata.disambiguation || '',
+      images: metadata.images,
+      status: metadata.type, // 'person', 'group', etc.
+      ratings: metadata.ratings,
+      genres: metadata.genres,
+      runtime: 0, // Not applicable for artists
+    };
+  }
+
+  /**
+   * Get albums for an artist
+   */
+  async getAlbums(artistId: number): Promise<Array<{
+    musicBrainzId: string;
+    title: string;
+    albumType: string;
+    releaseDate: string;
+    trackCount: number;
+    images: Array<{ coverType: string; url: string }>;
+  }>> {
+    const artistRecord = await db.query.media.findFirst({
+      where: eq(media.id, artistId),
+    });
+
+    if (!artistRecord || artistRecord.contentType !== 'music') {
+      throw new Error('Media is not a music artist');
+    }
+
+    const albums = await this.musicBrainzService.getAlbums(artistRecord.musicBrainzId!);
+    return albums;
+  }
+
+  /**
+   * Get tracks for an album
+   */
+  async getTracks(albumId: number): Promise<Array<{
+    musicBrainzId: string;
+    title: string;
+    trackNumber: number;
+    discNumber: number;
+    duration: number;
+  }>> {
+    const albumRecord = await db.query.album.findFirst({
+      where: eq(album.id, albumId),
+    });
+
+    if (!albumRecord) {
+      throw new Error('Album not found');
+    }
+
+    const tracks = await this.musicBrainzService.getTracks(albumRecord.musicBrainzReleaseId!);
+    return tracks;
   }
   
   /**
@@ -1080,6 +1484,8 @@ export class MetadataService {
         return mediaRecord.tvdbId!;
       case 'movie':
         return mediaRecord.tmdbId!;
+      case 'music':
+        return mediaRecord.musicBrainzId!;
       default:
         throw new Error(`Unknown content type: ${mediaRecord.contentType}`);
     }
@@ -1102,35 +1508,50 @@ import { ContentType } from '@/types/models/media';
 import { TVReleaseParser } from './tv.parser';
 import { AnimeReleaseParser } from './anime.parser';
 import { MovieReleaseParser } from './movie.parser';
+import { MusicReleaseParser } from './music.parser';
 
 interface ParsedRelease {
   contentType: ContentType;
   title: string;
   year?: number;
   quality: {
-    resolution: number;
+    resolution?: number; // For video
     source: string;
     modifier?: string;
+    // Audio-specific quality
+    audioFormat?: string; // 'FLAC', 'MP3', 'AAC', etc.
+    bitrate?: number; // kbps
+    bitDepth?: number; // 16, 24
+    sampleRate?: number; // Hz
   };
   releaseGroup?: string;
   tags: string[];
-  
+
   // TV Series/Anime specific
   seasonNumber?: number;
   episodeNumbers?: number[];
   absoluteEpisodeNumber?: number;
-  
+
   // Movie specific
   edition?: string;
   isProper?: boolean;
   isRepack?: boolean;
+
+  // Music specific
+  artist?: string;
+  album?: string;
+  discCount?: number;
+  releaseType?: string; // 'original', 'remaster', 'deluxe', etc.
+  catalogNumber?: string;
+  recordLabel?: string;
 }
 
 export class ReleaseParserService {
   private tvParser = new TVReleaseParser();
   private animeParser = new AnimeReleaseParser();
   private movieParser = new MovieReleaseParser();
-  
+  private musicParser = new MusicReleaseParser();
+
   /**
    * Parse release title and determine content type
    */
@@ -1143,7 +1564,7 @@ export class ReleaseParserService {
         ...tvResult,
       };
     }
-    
+
     // Try anime parser
     const animeResult = this.animeParser.parse(title);
     if (animeResult) {
@@ -1152,7 +1573,7 @@ export class ReleaseParserService {
         ...animeResult,
       };
     }
-    
+
     // Try movie parser
     const movieResult = this.movieParser.parse(title);
     if (movieResult) {
@@ -1161,10 +1582,19 @@ export class ReleaseParserService {
         ...movieResult,
       };
     }
-    
+
+    // Try music parser
+    const musicResult = this.musicParser.parse(title);
+    if (musicResult) {
+      return {
+        contentType: 'music',
+        ...musicResult,
+      };
+    }
+
     return null;
   }
-  
+
   /**
    * Parse release for specific content type
    */
@@ -1179,6 +1609,9 @@ export class ReleaseParserService {
       case 'movie':
         const movieResult = this.movieParser.parse(title);
         return movieResult ? { contentType: 'movie', ...movieResult } : null;
+      case 'music':
+        const musicResult = this.musicParser.parse(title);
+        return musicResult ? { contentType: 'music', ...musicResult } : null;
       default:
         return null;
     }
@@ -1659,6 +2092,238 @@ export class MovieReleaseParser {
 }
 ```
 
+### Music Release Parser
+
+```typescript
+// backend/core/parsing/services/music.parser.ts
+
+interface MusicParsedRelease {
+  artist: string;
+  album: string;
+  year?: number;
+  quality: {
+    source: string;
+    audioFormat: string;
+    bitrate?: number;
+    bitDepth?: number;
+    sampleRate?: number;
+  };
+  releaseGroup?: string;
+  releaseType?: string;
+  discCount?: number;
+  catalogNumber?: string;
+  recordLabel?: string;
+  tags: string[];
+}
+
+export class MusicReleaseParser {
+  private patterns = [
+    // Artist - Album (Year) [Format]
+    /^(.+?)\s*-\s*(.+?)\s*\((\d{4})\)\s*\[([^\]]+)\]/i,
+    // Artist - Album [Year] [Format]
+    /^(.+?)\s*-\s*(.+?)\s*\[(\d{4})\]\s*\[([^\]]+)\]/i,
+    // Artist - Album (Year) Format
+    /^(.+?)\s*-\s*(.+?)\s*\((\d{4})\)\s*(FLAC|MP3|AAC|ALAC|OGG|OPUS)/i,
+    // Artist.-.Album.Year.Format
+    /^(.+?)\.+-\.+(.+?)\.(\d{4})\.(FLAC|MP3|AAC|ALAC|OGG|OPUS)/i,
+  ];
+
+  private audioFormatPatterns = [
+    { pattern: /FLAC/i, format: 'FLAC', lossless: true },
+    { pattern: /ALAC/i, format: 'ALAC', lossless: true },
+    { pattern: /WAV/i, format: 'WAV', lossless: true },
+    { pattern: /MP3.?320/i, format: 'MP3', bitrate: 320 },
+    { pattern: /MP3.?V0/i, format: 'MP3', bitrate: 245 }, // V0 average
+    { pattern: /MP3.?V2/i, format: 'MP3', bitrate: 190 }, // V2 average
+    { pattern: /MP3.?256/i, format: 'MP3', bitrate: 256 },
+    { pattern: /MP3.?192/i, format: 'MP3', bitrate: 192 },
+    { pattern: /MP3/i, format: 'MP3', bitrate: 320 }, // Default to 320
+    { pattern: /AAC.?256/i, format: 'AAC', bitrate: 256 },
+    { pattern: /AAC/i, format: 'AAC', bitrate: 256 },
+    { pattern: /OGG.?Q10/i, format: 'OGG', bitrate: 500 },
+    { pattern: /OGG/i, format: 'OGG', bitrate: 320 },
+    { pattern: /OPUS/i, format: 'OPUS', bitrate: 256 },
+  ];
+
+  private sourcePatterns = [
+    { pattern: /\bCD\b/i, source: 'cd' },
+    { pattern: /\bWEB\b/i, source: 'web' },
+    { pattern: /Vinyl/i, source: 'vinyl' },
+    { pattern: /Cassette/i, source: 'cassette' },
+    { pattern: /SACD/i, source: 'sacd' },
+    { pattern: /DVD.?A/i, source: 'dvd-audio' },
+    { pattern: /Blu.?ray/i, source: 'bluray-audio' },
+  ];
+
+  private releaseTypePatterns = [
+    { pattern: /Remaster(ed)?/i, releaseType: 'remaster' },
+    { pattern: /Deluxe/i, releaseType: 'deluxe' },
+    { pattern: /Anniversary/i, releaseType: 'anniversary' },
+    { pattern: /Expanded/i, releaseType: 'expanded' },
+    { pattern: /Collector'?s/i, releaseType: 'collectors' },
+    { pattern: /Limited/i, releaseType: 'limited' },
+    { pattern: /Japan(ese)?/i, releaseType: 'japanese' },
+    { pattern: /Bonus.?Track/i, releaseType: 'bonus' },
+  ];
+
+  parse(title: string): MusicParsedRelease | null {
+    // Try to match music patterns
+    let match: RegExpMatchArray | null = null;
+    let patternIndex = 0;
+
+    for (; patternIndex < this.patterns.length; patternIndex++) {
+      match = title.match(this.patterns[patternIndex]);
+      if (match) break;
+    }
+
+    if (!match) return null;
+
+    const artist = match[1].replace(/\./g, ' ').trim();
+    const album = match[2].replace(/\./g, ' ').trim();
+    const year = parseInt(match[3], 10);
+
+    // Parse audio quality
+    const quality = this.parseAudioQuality(title);
+
+    // Parse release group
+    const releaseGroup = this.parseReleaseGroup(title);
+
+    // Parse release type
+    const releaseType = this.parseReleaseType(title);
+
+    // Parse disc count
+    const discCount = this.parseDiscCount(title);
+
+    // Parse catalog number and label
+    const { catalogNumber, recordLabel } = this.parseLabelInfo(title);
+
+    // Parse tags
+    const tags = this.parseTags(title);
+
+    return {
+      artist,
+      album,
+      year,
+      quality,
+      releaseGroup,
+      releaseType,
+      discCount,
+      catalogNumber,
+      recordLabel,
+      tags,
+    };
+  }
+
+  private parseAudioQuality(title: string): {
+    source: string;
+    audioFormat: string;
+    bitrate?: number;
+    bitDepth?: number;
+    sampleRate?: number;
+  } {
+    let source = 'cd';
+    let audioFormat = 'FLAC';
+    let bitrate: number | undefined;
+    let bitDepth: number | undefined;
+    let sampleRate: number | undefined;
+
+    // Parse source
+    for (const sourcePattern of this.sourcePatterns) {
+      if (sourcePattern.pattern.test(title)) {
+        source = sourcePattern.source;
+        break;
+      }
+    }
+
+    // Parse audio format
+    for (const formatPattern of this.audioFormatPatterns) {
+      if (formatPattern.pattern.test(title)) {
+        audioFormat = formatPattern.format;
+        if ('bitrate' in formatPattern) {
+          bitrate = formatPattern.bitrate;
+        }
+        break;
+      }
+    }
+
+    // Parse bit depth (for lossless)
+    const bitDepthMatch = title.match(/(\d{2})[\s-]?bit/i);
+    if (bitDepthMatch) {
+      bitDepth = parseInt(bitDepthMatch[1], 10);
+    }
+
+    // Parse sample rate
+    const sampleRateMatch = title.match(/(\d{2,3}(?:\.\d)?)\s*k?Hz/i);
+    if (sampleRateMatch) {
+      const rate = parseFloat(sampleRateMatch[1]);
+      sampleRate = rate < 1000 ? rate * 1000 : rate; // Convert kHz to Hz if needed
+    }
+
+    return { source, audioFormat, bitrate, bitDepth, sampleRate };
+  }
+
+  private parseReleaseGroup(title: string): string | undefined {
+    const match = title.match(/-([a-zA-Z0-9_]+)$/);
+    return match ? match[1] : undefined;
+  }
+
+  private parseReleaseType(title: string): string | undefined {
+    for (const typePattern of this.releaseTypePatterns) {
+      if (typePattern.pattern.test(title)) {
+        return typePattern.releaseType;
+      }
+    }
+    return 'original';
+  }
+
+  private parseDiscCount(title: string): number | undefined {
+    const match = title.match(/(\d+)\s*CD|(\d+)\s*Disc/i);
+    if (match) {
+      return parseInt(match[1] || match[2], 10);
+    }
+    return undefined;
+  }
+
+  private parseLabelInfo(title: string): {
+    catalogNumber?: string;
+    recordLabel?: string;
+  } {
+    // Try to match catalog number patterns like [LABEL-123] or (LABEL 456)
+    const catalogMatch = title.match(/\[([A-Z]{2,}[\s-]?\d+)\]|\(([A-Z]{2,}[\s-]?\d+)\)/i);
+    const catalogNumber = catalogMatch ? (catalogMatch[1] || catalogMatch[2]) : undefined;
+
+    return { catalogNumber, recordLabel: undefined };
+  }
+
+  private parseTags(title: string): string[] {
+    const tags: string[] = [];
+
+    // Audio quality tags
+    if (/lossless/i.test(title)) tags.push('lossless');
+    if (/hi.?res/i.test(title)) tags.push('hi-res');
+    if (/24[\s-]?bit/i.test(title)) tags.push('24bit');
+    if (/16[\s-]?bit/i.test(title)) tags.push('16bit');
+    if (/44\.1/i.test(title)) tags.push('44.1kHz');
+    if (/48k/i.test(title)) tags.push('48kHz');
+    if (/96k/i.test(title)) tags.push('96kHz');
+    if (/192k/i.test(title)) tags.push('192kHz');
+
+    // Release tags
+    if (/5\.1|surround/i.test(title)) tags.push('5.1');
+    if (/stereo/i.test(title)) tags.push('stereo');
+    if (/mono/i.test(title)) tags.push('mono');
+
+    // Scene tags
+    if (/proper/i.test(title)) tags.push('proper');
+    if (/repack/i.test(title)) tags.push('repack');
+    if (/retail/i.test(title)) tags.push('retail');
+    if (/scene/i.test(title)) tags.push('scene');
+
+    return tags;
+  }
+}
+```
+
 ---
 
 ## API Design
@@ -1676,18 +2341,18 @@ import { validationMiddleware } from '@/middleware/validation.middleware';
 
 const mediaRoutes = new Hono();
 
-// GET /api/v3/instance/:instanceId/media - List all media (TV, movies, anime)
+// GET /api/v3/instance/:instanceId/media - List all media (TV, movies, anime, music)
 mediaRoutes.get('/instance/:instanceId/media', authMiddleware, async (c) => {
   const instanceId = Number(c.req.param('instanceId'));
   const { type, query, page = 1, pageSize = 20 } = c.req.query();
-  
+
   const media = await mediaService.getAll(instanceId, {
-    contentType: type as 'series' | 'anime' | 'movie',
+    contentType: type as 'series' | 'anime' | 'movie' | 'music',
     query,
     page: Number(page),
     pageSize: Number(pageSize),
   });
-  
+
   return c.json({ data: media });
 });
 
@@ -1699,18 +2364,19 @@ mediaRoutes.get('/instance/:instanceId/media/:id', authMiddleware, async (c) => 
   return c.json({ data: media });
 });
 
-// POST /api/v3/instance/:instanceId/media - Add media (TV series or movie)
+// POST /api/v3/instance/:instanceId/media - Add media (TV series, movie, anime, or music artist)
 mediaRoutes.post(
   '/instance/:instanceId/media',
   authMiddleware,
   requirePermission('media', 'create'),
   validationMiddleware(
     z.object({
-      contentType: z.enum(['series', 'anime', 'movie']),
+      contentType: z.enum(['series', 'anime', 'movie', 'music']),
       tvdbId: z.number().optional(),
       tmdbId: z.number().optional(),
       aniDbId: z.number().optional(),
       imdbId: z.string().optional(),
+      musicBrainzId: z.string().optional(), // For music artists
       qualityProfileId: z.number(),
       rootFolderId: z.number(),
       monitored: z.boolean().default(true),
@@ -1759,7 +2425,7 @@ mediaRoutes.post(
   validationMiddleware(
     z.object({
       term: z.string().min(1),
-      type: z.enum(['series', 'anime', 'movie', 'all']).default('all'),
+      type: z.enum(['series', 'anime', 'movie', 'music', 'all']).default('all'),
     }),
   ),
   async (c) => {
@@ -1791,13 +2457,64 @@ mediaRoutes.get('/instance/:instanceId/media/:id/episodes', authMiddleware, asyn
   return c.json({ data: episodes });
 });
 
-// GET /api/v3/instance/:instanceId/media/:id/files - Get files (episodes or movie files)
+// GET /api/v3/instance/:instanceId/media/:id/files - Get files (episodes, movie files, or track files)
 mediaRoutes.get('/instance/:instanceId/media/:id/files', authMiddleware, async (c) => {
   const instanceId = Number(c.req.param('instanceId'));
   const id = Number(c.req.param('id'));
   const files = await mediaService.getFiles(instanceId, id);
   return c.json({ data: files });
 });
+
+// GET /api/v3/instance/:instanceId/media/:id/albums - Get albums for music artist
+mediaRoutes.get('/instance/:instanceId/media/:id/albums', authMiddleware, async (c) => {
+  const instanceId = Number(c.req.param('instanceId'));
+  const id = Number(c.req.param('id'));
+  const albums = await mediaService.getAlbums(instanceId, id);
+  return c.json({ data: albums });
+});
+
+// GET /api/v3/instance/:instanceId/album/:albumId - Get album details
+mediaRoutes.get('/instance/:instanceId/album/:albumId', authMiddleware, async (c) => {
+  const instanceId = Number(c.req.param('instanceId'));
+  const albumId = Number(c.req.param('albumId'));
+  const album = await mediaService.getAlbumById(instanceId, albumId);
+  return c.json({ data: album });
+});
+
+// GET /api/v3/instance/:instanceId/album/:albumId/tracks - Get tracks for album
+mediaRoutes.get('/instance/:instanceId/album/:albumId/tracks', authMiddleware, async (c) => {
+  const instanceId = Number(c.req.param('instanceId'));
+  const albumId = Number(c.req.param('albumId'));
+  const tracks = await mediaService.getTracks(instanceId, albumId);
+  return c.json({ data: tracks });
+});
+
+// PUT /api/v3/instance/:instanceId/album/:albumId - Update album monitoring
+mediaRoutes.put(
+  '/instance/:instanceId/album/:albumId',
+  authMiddleware,
+  requirePermission('media', 'update'),
+  async (c) => {
+    const instanceId = Number(c.req.param('instanceId'));
+    const albumId = Number(c.req.param('albumId'));
+    const body = await c.req.json();
+    const album = await mediaService.updateAlbum(instanceId, albumId, body);
+    return c.json({ data: album });
+  },
+);
+
+// POST /api/v3/instance/:instanceId/album/:albumId/search - Search for album releases
+mediaRoutes.post(
+  '/instance/:instanceId/album/:albumId/search',
+  authMiddleware,
+  requirePermission('media', 'update'),
+  async (c) => {
+    const instanceId = Number(c.req.param('instanceId'));
+    const albumId = Number(c.req.param('albumId'));
+    await mediaService.searchAlbum(instanceId, albumId);
+    return c.json({ success: true });
+  },
+);
 
 export default mediaRoutes;
 ```
@@ -1819,10 +2536,10 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { MediaCard } from '@/components/media/MediaCard';
-import { tv, film, clapperboard } from 'lucide-react';
+import { tv, film, clapperboard, music } from 'lucide-react';
 
 export function MediaListPage({ params }: { params: { instance: string } }) {
-  const [contentType, setContentType] = useState<'all' | 'series' | 'anime' | 'movie'>('all');
+  const [contentType, setContentType] = useState<'all' | 'series' | 'anime' | 'movie' | 'music'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const { data: media } = useMedia(params.instance, contentType, searchQuery);
   
@@ -1859,6 +2576,10 @@ export function MediaListPage({ params }: { params: { instance: string } }) {
             <film className="w-4 h-4 mr-2" />
             Movies
           </TabsTrigger>
+          <TabsTrigger value="music">
+            <music className="w-4 h-4 mr-2" />
+            Music
+          </TabsTrigger>
         </TabsList>
         
         <TabsContent value={contentType} className="mt-6">
@@ -1881,7 +2602,7 @@ export function MediaListPage({ params }: { params: { instance: string } }) {
 
 'use client';
 
-import { tv, film, clapperboard } from 'lucide-react';
+import { tv, film, clapperboard, music } from 'lucide-react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import type { Media } from '@/types/models/media';
@@ -1899,9 +2620,11 @@ export function MediaCard({ media }: MediaCardProps) {
         return <clapperboard className="w-4 h-4" />;
       case 'movie':
         return <film className="w-4 h-4" />;
+      case 'music':
+        return <music className="w-4 h-4" />;
     }
   };
-  
+
   const getSubtitle = () => {
     switch (media.contentType) {
       case 'series':
@@ -1909,6 +2632,8 @@ export function MediaCard({ media }: MediaCardProps) {
         return `${media.seasonCount} Seasons`;
       case 'movie':
         return media.year?.toString();
+      case 'music':
+        return `${media.albumCount} Albums`;
     }
   };
   
@@ -2086,17 +2811,17 @@ CREATE INDEX idx_movie_file_media ON movie_file(media_id);
 
 ### User Experience Improvements
 
-**Before (Separate Sonarr + Radarr):**
-- Two separate applications to manage
-- Two separate databases (no shared config)
-- Two separate web UIs (different URLs, different logins)
+**Before (Separate Sonarr + Radarr + Lidarr):**
+- Three+ separate applications to manage
+- Three separate databases (no shared config)
+- Three separate web UIs (different URLs, different logins)
 - Duplicate download clients, indexers, notifications
 - Separate histories and queues
-- Can't search across TV and movies together
-- Anime requires third installation
+- Can't search across TV, movies, and music together
+- Anime requires fourth installation
 
 **After (Unified idkarr):**
-- Single application for all content (TV, movies, anime)
+- Single application for all content (TV, movies, anime, music)
 - Shared database with unified configuration
 - Single web UI with content type filtering
 - Shared download clients, indexers, notifications
@@ -2107,8 +2832,8 @@ CREATE INDEX idx_movie_file_media ON movie_file(media_id);
 ### Performance Improvements
 
 **Resource Usage:**
-- **Before**: 3+ installations (Sonarr + Radarr + Sonarr anime) = 3x resources
-- **After**: 1 installation (idkarr) = 1/3 resources
+- **Before**: 4+ installations (Sonarr + Radarr + Lidarr + Sonarr anime) = 4x resources
+- **After**: 1 installation (idkarr) = 1/4 resources
 
 **Database:**
 - Single database instead of multiple
@@ -2140,15 +2865,36 @@ CREATE INDEX idx_movie_file_media ON movie_file(media_id);
 
 This unified media manager (idkarr) provides:
 
-1. **Single Application**: TV series, movies, and anime in one app
+1. **Single Application**: TV series, movies, anime, and music in one app
 2. **Shared Infrastructure**: Download clients, indexers, notifications, quality profiles
-3. **Unified Search**: Search across all content types
+3. **Unified Search**: Search across all content types (TVDB, TMDB, AniDB, MusicBrainz)
 4. **Polymorphic Data Model**: Single media table with content type polymorphism
-3. **Type-Specific Logic**: Separate parsers and metadata services per content type
-4. **Multi-Instance Support**: Instances can be content-type specific or mixed
-5. **Reduced Resource Usage**: 1 app instead of 3+ (1/3 resources)
-6. **Simplified Development**: Single codebase instead of 95% duplicate code
-7. **Migration Path**: Clear migration from separate Sonarr/Radarr installations
+5. **Type-Specific Logic**: Separate parsers and metadata services per content type
+6. **Multi-Instance Support**: Instances can be content-type specific or mixed
+7. **Reduced Resource Usage**: 1 app instead of 4+ (1/4 resources)
+8. **Simplified Development**: Single codebase instead of 95% duplicate code
+9. **Migration Path**: Clear migration from separate Sonarr/Radarr/Lidarr installations
+
+### Content Type Comparison
+
+| Feature | TV Series | Movies | Anime | Music |
+|---------|-----------|--------|-------|-------|
+| **Hierarchy** | Series > Season > Episode | Movie | Series > Season > Episode | Artist > Album > Track |
+| **Metadata Source** | TVDB/TVMaze | TMDB | AniDB/TVDB | MusicBrainz |
+| **ID Format** | S01E01 | Title (Year) | Absolute/S01E01 | Artist - Album (Year) |
+| **Quality Focus** | Video resolution | Video resolution | Video resolution | Audio format/bitrate |
+| **Editions** | N/A | Director's Cut, Extended | N/A | Original, Remaster, Deluxe |
+| **Multi-file** | Episode per file | Single file | Episode per file | Track per file |
+| **Monitoring** | Season/Episode | Single item | Season/Episode | Album/Track |
+
+### Audio Quality Profiles (Music-Specific)
+
+| Quality | Format | Bitrate | Bit Depth | Sample Rate |
+|---------|--------|---------|-----------|-------------|
+| Lossless | FLAC/ALAC | N/A | 16/24-bit | 44.1-192kHz |
+| High | MP3/AAC | 320kbps | N/A | N/A |
+| Medium | MP3/AAC | 256kbps | N/A | N/A |
+| Standard | MP3/AAC | 192kbps | N/A | N/A |
 
 This solves the fundamental inefficiency of running separate apps that share 95% of their code and infrastructure, while maintaining all the benefits of content-type-specific handling.
 

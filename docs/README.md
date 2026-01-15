@@ -1,10 +1,20 @@
 # idkarr Documentation
 
-> Sonarr Rebuild Project - TypeScript + Bun Modern Stack
+> Unified Media Manager - TV, Movies, Anime, Music in One Application
 
 ## Documentation Structure
 
 This documentation is organized by scope to help you find what you need quickly.
+
+---
+
+### Plans
+Vision documents and implementation roadmaps.
+
+| Document | Description |
+|----------|-------------|
+| [Unified Vision Design](plans/2026-01-15-idkarr-unified-vision-design.md) | Complete product vision combining Sonarr, Radarr, Lidarr, Prowlarr, Overseerr |
+| [Implementation Roadmap](plans/IMPLEMENTATION_ROADMAP.md) | 10-phase implementation plan with milestones |
 
 ---
 
@@ -44,14 +54,35 @@ REST API and real-time communication protocols.
 ### 04 - Features
 Detailed specifications for application features and capabilities.
 
+#### Core Architecture
 | Document | Description |
 |----------|-------------|
-| [UNIFIED_MEDIA_MANAGER.md](04-features/UNIFIED_MEDIA_MANAGER.md) | Media management across TV/Movies/Music |
-| [DISCOVERY_REQUESTS.md](04-features/DISCOVERY_REQUESTS.md) | Content discovery and request system |
+| [UNIFIED_MEDIA_MANAGER.md](04-features/UNIFIED_MEDIA_MANAGER.md) | Unified management for TV, Movies, Anime, Music |
+| [LIBRARY_ARCHITECTURE.md](04-features/LIBRARY_ARCHITECTURE.md) | One library per media type design (replaces multi-instance) |
+| [IMPORT_MIGRATION.md](04-features/IMPORT_MIGRATION.md) | Rename-on-import system and migration from *arr apps |
+
+#### Media Types
+| Document | Description |
+|----------|-------------|
+| [ANIME_SPECIFICATION.md](04-features/ANIME_SPECIFICATION.md) | First-class anime support with AniList/AniDB integration |
+| [MUSIC_SPECIFICATION.md](04-features/MUSIC_SPECIFICATION.md) | Full Lidarr parity with MusicBrainz integration |
+
+#### Search & Acquisition
+| Document | Description |
+|----------|-------------|
+| [INDEXER_MANAGEMENT.md](04-features/INDEXER_MANAGEMENT.md) | Built-in Prowlarr with smart search debouncing |
+| [PARSER_SPECIFICATION.md](04-features/PARSER_SPECIFICATION.md) | Release parsing for TV, Movies, Anime, Music |
 | [SEARCH_SPECIFICATION.md](04-features/SEARCH_SPECIFICATION.md) | Search functionality specification |
-| [PARSER_SPECIFICATION.md](04-features/PARSER_SPECIFICATION.md) | Release name parsing rules and logic |
-| [AI_RECOMMENDATIONS.md](04-features/AI_RECOMMENDATIONS.md) | AI-powered recommendation system |
-| [MULTI_INSTANCE_SONARR.md](04-features/MULTI_INSTANCE_SONARR.md) | Multi-instance deployment and management |
+
+#### Intelligence & Discovery
+| Document | Description |
+|----------|-------------|
+| [AI_RECOMMENDATIONS.md](04-features/AI_RECOMMENDATIONS.md) | Three-tier AI: Local → RAG → Full Assistant |
+| [DISCOVERY_REQUESTS.md](04-features/DISCOVERY_REQUESTS.md) | Content discovery and request system |
+
+#### System Features
+| Document | Description |
+|----------|-------------|
 | [MULTI_USER_ACL.md](04-features/MULTI_USER_ACL.md) | Multi-user access control lists |
 | [TRASH_SUPPORT.md](04-features/TRASH_SUPPORT.md) | Soft delete and recovery functionality |
 | [FILE_NAMING_RULES.md](04-features/FILE_NAMING_RULES.md) | File naming patterns and conventions |
@@ -100,13 +131,34 @@ UI/UX specifications and design references.
 
 ## Quick Links
 
-**Getting Started:** Start with [PROJECT_PLAN.md](01-project-overview/PROJECT_PLAN.md) for an overview
+**Getting Started:** Start with the [Unified Vision Design](plans/2026-01-15-idkarr-unified-vision-design.md) for the complete product vision
+
+**Implementation:** See the [Implementation Roadmap](plans/IMPLEMENTATION_ROADMAP.md) for the 10-phase build plan
 
 **API Development:** See [REST_API.md](03-api-specification/REST_API.md) and [WEBSOCKET_EVENTS.md](03-api-specification/WEBSOCKET_EVENTS.md)
 
 **Deployment:** Follow [DEPLOYMENT.md](05-infrastructure/DEPLOYMENT.md) for Docker/Kubernetes setup
 
 **Contributing:** Review [TESTING_STRATEGY.md](06-development/TESTING_STRATEGY.md) before submitting PRs
+
+---
+
+## What is idkarr?
+
+idkarr is a **unified media management application** that combines the functionality of:
+- **Sonarr** (TV Series)
+- **Radarr** (Movies)
+- **Lidarr** (Music)
+- **Prowlarr** (Indexers)
+- **Overseerr** (Requests)
+
+...into a single, modern application with:
+- One library per media type (no more managing multiple instances)
+- First-class anime support (not a TV subset)
+- Three-tier AI recommendations (local → RAG → full assistant)
+- Built-in indexer management with smart search debouncing
+- TRaSH Guides auto-sync for quality profiles
+- PWA with offline library browsing
 
 ---
 

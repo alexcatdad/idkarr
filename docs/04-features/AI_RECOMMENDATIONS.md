@@ -1,19 +1,22 @@
 # AI Recommendations Specification
 
-> **idkarr** - AI-powered recommendations with Retrieval Augmented Generation (RAG)
+> **idkarr** - Flexible AI-powered recommendations with three distinct tiers
 
 ## Table of Contents
 
 1. [Overview](#overview)
-2. [Architecture](#architecture)
-3. [RAG Pipeline](#rag-pipeline)
-4. [Embedding System](#embedding-system)
-5. [Vector Database](#vector-database)
-6. [Recommendation Engine](#recommendation-engine)
-7. [LLM Integration](#llm-integration)
-8. [User Preference Learning](#user-preference-learning)
-9. [API Specification](#api-specification)
-10. [Privacy & Data Handling](#privacy--data-handling)
+2. [Three-Tier Model](#three-tier-model)
+3. [Privacy Model](#privacy-model)
+4. [Configuration](#configuration)
+5. [Tier 1: Local Recommendations](#tier-1-local-recommendations)
+6. [Tier 2: RAG-Powered Discovery](#tier-2-rag-powered-discovery)
+7. [Tier 3: Full AI Assistant](#tier-3-full-ai-assistant)
+8. [Architecture](#architecture)
+9. [Embedding System](#embedding-system)
+10. [Vector Database](#vector-database)
+11. [LLM Integration](#llm-integration)
+12. [User Preference Learning](#user-preference-learning)
+13. [API Specification](#api-specification)
 
 ---
 
@@ -21,111 +24,243 @@
 
 ### Goals
 
-1. **Personalized Recommendations**: Suggest series/movies based on user preferences and viewing history
-2. **Natural Language Queries**: "Find shows like Breaking Bad but with more comedy"
-3. **Smart Discovery**: Surface hidden gems matching user taste profiles
-4. **Context-Aware**: Consider mood, time of day, viewing patterns
-5. **Explainable**: Provide reasoning for recommendations
+1. **Flexible Privacy**: Users choose their comfort level with AI features
+2. **Progressive Enhancement**: Start simple, enable more as needed
+3. **Personalized Recommendations**: Suggest series/movies based on user preferences and viewing history
+4. **Natural Language Queries**: "Find shows like Breaking Bad but with more comedy"
+5. **Smart Discovery**: Surface hidden gems matching user taste profiles
+6. **Actionable Assistant**: AI that can search, grab, and import content
 
-### Use Cases
+### Design Philosophy
 
-| Use Case | Description | Example |
-|----------|-------------|---------|
-| Similar Content | Find similar series/movies | "Shows like Severance" |
-| Natural Language Search | Search by description | "Sci-fi with strong female lead" |
-| Mood-Based | Recommendations by mood | "Something light and funny" |
-| Gap Filling | What's missing from library | "Popular shows you might like" |
-| Watchlist Curation | Smart watchlist ordering | "What to watch tonight" |
-| Request Suggestions | For Overseerr-style requests | "Users who liked X also requested Y" |
+idkarr's AI recommendations are built on a **progressive enhancement** model. Users start with zero external dependencies and can opt into more powerful features as desired. Each tier builds on the previous one:
 
-### Technology Stack
-
-| Component | Technology | Purpose |
-|-----------|------------|---------|
-| Embeddings | OpenAI/Ollama/Local | Generate semantic vectors |
-| Vector DB | pgvector/Qdrant/Milvus | Store and query embeddings |
-| LLM | OpenAI/Anthropic/Ollama | Generate responses |
-| RAG Framework | LangChain/LlamaIndex | Orchestrate retrieval |
-| Cache | Redis | Cache embeddings & results |
+- **Tier 1** works entirely offline with your existing library
+- **Tier 2** adds semantic understanding for smarter search
+- **Tier 3** adds conversational AI that takes actions on your behalf
 
 ---
 
-## Architecture
+## Three-Tier Model
 
-### System Overview
+### Tier Overview
 
+| Tier | Name | External Services | Key Features |
+|------|------|-------------------|--------------|
+| **1** | Local Only | None | Metadata-based recommendations, similarity matching |
+| **2** | RAG-Powered | Embedding API (optional) | Natural language search, semantic discovery |
+| **3** | Full Assistant | LLM API (optional) | Conversational interface, automated actions |
+
+### Tier 1: Local Only
+
+**No external services required.** All processing happens on your server using your library's metadata.
+
+**Features:**
+- "Because you watched X" recommendations
+- Genre/actor/director similarity matching
+- Collaborative filtering (if multiple users)
+- "More like this" buttons
+- Trending in your library
+- Hidden gems (high-rated, low-watch-count)
+
+**Best for:** Privacy-focused users, air-gapped setups, limited bandwidth
+
+**Example interactions:**
 ```
-┌─────────────────────────────────────────────────────────────────────────┐
-│                         User Interface                                   │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────┐  │
-│  │  Recommendation │  │  Natural Lang   │  │  "More Like This"       │  │
-│  │  Dashboard      │  │  Search Bar     │  │  Button                 │  │
-│  └────────┬────────┘  └────────┬────────┘  └────────────┬────────────┘  │
-└───────────┼────────────────────┼───────────────────────┼────────────────┘
-            │                    │                       │
-            ▼                    ▼                       ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                       Recommendation API                                 │
-│  ┌─────────────────────────────────────────────────────────────────┐    │
-│  │                    Query Processor                               │    │
-│  │  • Intent Detection  • Query Expansion  • Context Injection      │    │
-│  └──────────────────────────────┬──────────────────────────────────┘    │
-└─────────────────────────────────┼───────────────────────────────────────┘
-                                  │
-            ┌─────────────────────┼─────────────────────┐
-            ▼                     ▼                     ▼
-┌───────────────────┐  ┌───────────────────┐  ┌───────────────────┐
-│   RAG Pipeline    │  │  Preference       │  │  Collaborative    │
-│                   │  │  Engine           │  │  Filtering        │
-│  • Retrieval      │  │                   │  │                   │
-│  • Augmentation   │  │  • User Taste     │  │  • Similar Users  │
-│  • Generation     │  │  • Watch History  │  │  • Popular Items  │
-└─────────┬─────────┘  └─────────┬─────────┘  └─────────┬─────────┘
-          │                      │                      │
-          ▼                      ▼                      ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                        Data Layer                                        │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────┐  │
-│  │  Vector Store   │  │  PostgreSQL     │  │  Redis Cache            │  │
-│  │  (pgvector)     │  │  (User Data)    │  │  (Embeddings/Results)   │  │
-│  └─────────────────┘  └─────────────────┘  └─────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────────────┘
-                                  │
-                                  ▼
-┌─────────────────────────────────────────────────────────────────────────┐
-│                     External Services                                    │
-│  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────────────┐  │
-│  │  Embedding API  │  │  LLM Provider   │  │  Metadata APIs          │  │
-│  │  (OpenAI/Local) │  │  (Claude/GPT)   │  │  (TMDB/TVDB)            │  │
-│  └─────────────────┘  └─────────────────┘  └─────────────────────────┘  │
-└─────────────────────────────────────────────────────────────────────────┘
+User clicks "More Like This" on Breaking Bad
+→ System analyzes: Drama, Crime, AMC, Vince Gilligan, Bryan Cranston
+→ Returns: Better Call Saul, Ozark, The Wire, Narcos
 ```
 
-### Configuration
+### Tier 2: RAG-Powered Discovery
+
+**Adds semantic search via vector embeddings.** Can use local (Ollama) or cloud (OpenAI) embedding models.
+
+**Features (includes all Tier 1):**
+- Natural language search: "90s thriller with twist ending"
+- Mood-based discovery: "something light and funny"
+- Complex queries: "sci-fi like Arrival but more action"
+- Semantic similarity (understands themes, not just tags)
+
+**Best for:** Users wanting smarter search without full AI assistant
+
+**Example interactions:**
+```
+User: "Cozy mystery shows for a rainy day"
+→ System embeds query, searches vector store
+→ Returns: Only Murders in the Building, Poker Face, Murder She Wrote
+→ Shows match scores and why each was selected
+```
+
+### Tier 3: Full AI Assistant
+
+**Complete conversational AI with action capabilities.** Uses LLM for understanding and response generation.
+
+**Features (includes all Tier 1 & 2):**
+- Conversational interface with context memory
+- Follow-up questions and refinement
+- Takes actions: "Add it to my library"
+- Multi-step workflows: search → select → grab → import
+- Personalized explanations
+- Proactive suggestions based on viewing patterns
+
+**Best for:** Users wanting a full media assistant experience
+
+**Example interactions:**
+```
+User: "I loved Severance. Find me something similar and add the best one"
+Assistant: "Based on Severance, I'd recommend:
+  1. Homecoming - Similar corporate thriller, psychological elements
+  2. The OA - Mysterious, mind-bending narrative
+  3. Maniac - Surreal workplace/mind exploration
+
+  I think you'd love Homecoming most - it shares Severance's unsettling
+  corporate dystopia vibe. Want me to add it to your library?"
+
+User: "Yes, add Homecoming"
+Assistant: "Done! I've added Homecoming to your library.
+  Searching for releases... Found 4K HDR version on Usenet.
+  Starting download. I'll notify you when it's ready."
+```
+
+---
+
+## Privacy Model
+
+### Data Flow by Tier
+
+| Data Type | Tier 1 | Tier 2 | Tier 3 |
+|-----------|--------|--------|--------|
+| Library metadata | Local only | Local + optional embedding API | Local + LLM API |
+| Watch history | Local only | Local only | Local only (summarized for LLM) |
+| User queries | N/A | Local or embedding API | Local or LLM API |
+| Recommendations | Local only | Local only | Generated by LLM |
+
+### What Stays Local (Always)
+
+Regardless of tier, these **never leave your server**:
+- User credentials and authentication data
+- Complete watch history with timestamps
+- User ratings and reviews
+- Download/grab history
+- File paths and server configuration
+- Personal user profiles
+
+### What May Be Sent Externally
+
+**Tier 1:** Nothing - fully offline
+
+**Tier 2 (if using cloud embeddings):**
+- Media titles and overviews (for embedding generation)
+- User search queries (for query embedding)
+- Genre/keyword lists
+
+**Tier 3 (if using cloud LLM):**
+- Summarized user preferences (not raw history)
+- Current query context
+- Retrieved media metadata
+- Conversation context (configurable retention)
+
+### Privacy Configuration
+
+```typescript
+interface PrivacyConfig {
+  tier: 1 | 2 | 3;
+
+  // Tier 2+ options
+  embeddingProvider: 'local' | 'openai';
+
+  // Tier 3 options
+  llmProvider: 'local' | 'openai' | 'anthropic';
+
+  // Data handling
+  anonymizeQueries: boolean;          // Strip personal references before API calls
+  summarizeHistory: boolean;          // Send preferences, not raw watch history
+  conversationRetention: 'none' | 'session' | 'persistent';
+
+  // Local processing preferences
+  preferLocalWhenAvailable: boolean;  // Use local models if running
+  fallbackToCloud: boolean;           // Fall back to cloud if local fails
+}
+```
+
+### Privacy Levels Explained
+
+**Maximum Privacy (Tier 1):**
+```typescript
+{
+  tier: 1,
+  // No external services configured
+}
+```
+
+**Balanced (Tier 2 with local embeddings):**
+```typescript
+{
+  tier: 2,
+  embeddingProvider: 'local',  // Ollama
+  anonymizeQueries: true,
+}
+```
+
+**Full Features with Privacy (Tier 3 with local LLM):**
+```typescript
+{
+  tier: 3,
+  embeddingProvider: 'local',
+  llmProvider: 'local',  // Ollama with llama3.1
+}
+```
+
+**Full Features with Cloud:**
+```typescript
+{
+  tier: 3,
+  embeddingProvider: 'openai',
+  llmProvider: 'anthropic',
+  anonymizeQueries: true,
+  summarizeHistory: true,
+  conversationRetention: 'session',
+}
+```
+
+---
+
+## Configuration
+
+### Main Configuration Interface
 
 ```typescript
 interface AIRecommendationConfig {
-  // Feature flags
-  enabled: boolean;
-  enableNaturalLanguageSearch: boolean;
-  enablePersonalizedRecommendations: boolean;
-  enableExplainability: boolean;
+  // Tier selection
+  tier: 1 | 2 | 3;
 
-  // Embedding configuration
-  embedding: {
-    provider: 'openai' | 'ollama' | 'local' | 'huggingface';
+  // Feature flags (auto-set based on tier, can override)
+  features: {
+    similarContent: boolean;           // Tier 1+
+    genreMatching: boolean;            // Tier 1+
+    actorDirectorMatching: boolean;    // Tier 1+
+    naturalLanguageSearch: boolean;    // Tier 2+
+    moodBasedDiscovery: boolean;       // Tier 2+
+    conversationalInterface: boolean;  // Tier 3
+    actionableCommands: boolean;       // Tier 3
+    proactiveSuggestions: boolean;     // Tier 3
+  };
+
+  // Tier 2+ Embedding configuration
+  embedding?: {
+    provider: 'local' | 'ollama' | 'openai' | 'huggingface';
     model: string;
     dimensions: number;
     batchSize: number;
 
-    // Provider-specific
-    openai?: {
-      apiKey: string;
-      model: 'text-embedding-3-small' | 'text-embedding-3-large' | 'text-embedding-ada-002';
-    };
     ollama?: {
       baseUrl: string;
       model: string; // 'nomic-embed-text', 'mxbai-embed-large'
+    };
+    openai?: {
+      apiKey: string;
+      model: 'text-embedding-3-small' | 'text-embedding-3-large';
     };
     local?: {
       modelPath: string;
@@ -133,66 +268,517 @@ interface AIRecommendationConfig {
     };
   };
 
-  // LLM configuration
-  llm: {
-    provider: 'openai' | 'anthropic' | 'ollama' | 'local';
+  // Tier 3 LLM configuration
+  llm?: {
+    provider: 'ollama' | 'openai' | 'anthropic';
     model: string;
     temperature: number;
     maxTokens: number;
 
+    ollama?: {
+      baseUrl: string;
+      model: string; // 'llama3.1', 'mistral', 'mixtral'
+    };
     openai?: {
       apiKey: string;
-      model: 'gpt-4o' | 'gpt-4o-mini' | 'gpt-4-turbo';
+      model: 'gpt-4o' | 'gpt-4o-mini';
     };
     anthropic?: {
       apiKey: string;
       model: 'claude-sonnet-4-20250514' | 'claude-3-5-haiku-20241022';
     };
-    ollama?: {
-      baseUrl: string;
-      model: string; // 'llama3.1', 'mistral', 'mixtral'
-    };
   };
 
-  // Vector store configuration
-  vectorStore: {
-    provider: 'pgvector' | 'qdrant' | 'milvus' | 'chroma';
-
+  // Vector store (Tier 2+)
+  vectorStore?: {
+    provider: 'pgvector' | 'qdrant' | 'chroma';
     pgvector?: {
       connectionString: string;
       tableName: string;
       indexType: 'ivfflat' | 'hnsw';
     };
-    qdrant?: {
-      url: string;
-      apiKey?: string;
-      collectionName: string;
-    };
   };
 
-  // Recommendation settings
+  // Recommendation tuning
   recommendations: {
     maxResults: number;
     minSimilarityScore: number;
-    diversityFactor: number; // 0-1, higher = more diverse
-    recencyBias: number; // Boost newer content
+    diversityFactor: number;
+    recencyBias: number;
     popularityWeight: number;
   };
 
   // Privacy settings
-  privacy: {
-    anonymizeUserData: boolean;
-    localProcessingOnly: boolean;
-    dataRetentionDays: number;
-  };
+  privacy: PrivacyConfig;
 }
+```
+
+### Example Configurations
+
+**Tier 1: Fully Local (No External Services)**
+```typescript
+const tier1Config: AIRecommendationConfig = {
+  tier: 1,
+  features: {
+    similarContent: true,
+    genreMatching: true,
+    actorDirectorMatching: true,
+    naturalLanguageSearch: false,
+    moodBasedDiscovery: false,
+    conversationalInterface: false,
+    actionableCommands: false,
+    proactiveSuggestions: false,
+  },
+  recommendations: {
+    maxResults: 20,
+    minSimilarityScore: 0.5,
+    diversityFactor: 0.3,
+    recencyBias: 0.1,
+    popularityWeight: 0.2,
+  },
+  privacy: {
+    tier: 1,
+  },
+};
+```
+
+**Tier 2: RAG with Local Ollama**
+```typescript
+const tier2LocalConfig: AIRecommendationConfig = {
+  tier: 2,
+  features: {
+    similarContent: true,
+    genreMatching: true,
+    actorDirectorMatching: true,
+    naturalLanguageSearch: true,
+    moodBasedDiscovery: true,
+    conversationalInterface: false,
+    actionableCommands: false,
+    proactiveSuggestions: false,
+  },
+  embedding: {
+    provider: 'ollama',
+    model: 'nomic-embed-text',
+    dimensions: 768,
+    batchSize: 32,
+    ollama: {
+      baseUrl: 'http://localhost:11434',
+      model: 'nomic-embed-text',
+    },
+  },
+  vectorStore: {
+    provider: 'pgvector',
+    pgvector: {
+      connectionString: process.env.DATABASE_URL!,
+      tableName: 'media_embeddings',
+      indexType: 'hnsw',
+    },
+  },
+  recommendations: {
+    maxResults: 20,
+    minSimilarityScore: 0.4,
+    diversityFactor: 0.3,
+    recencyBias: 0.1,
+    popularityWeight: 0.2,
+  },
+  privacy: {
+    tier: 2,
+    embeddingProvider: 'local',
+    anonymizeQueries: false,
+  },
+};
+```
+
+**Tier 2: RAG with OpenAI Embeddings**
+```typescript
+const tier2CloudConfig: AIRecommendationConfig = {
+  tier: 2,
+  features: {
+    similarContent: true,
+    genreMatching: true,
+    actorDirectorMatching: true,
+    naturalLanguageSearch: true,
+    moodBasedDiscovery: true,
+    conversationalInterface: false,
+    actionableCommands: false,
+    proactiveSuggestions: false,
+  },
+  embedding: {
+    provider: 'openai',
+    model: 'text-embedding-3-small',
+    dimensions: 1536,
+    batchSize: 100,
+    openai: {
+      apiKey: process.env.OPENAI_API_KEY!,
+      model: 'text-embedding-3-small',
+    },
+  },
+  vectorStore: {
+    provider: 'pgvector',
+    pgvector: {
+      connectionString: process.env.DATABASE_URL!,
+      tableName: 'media_embeddings',
+      indexType: 'hnsw',
+    },
+  },
+  recommendations: {
+    maxResults: 20,
+    minSimilarityScore: 0.4,
+    diversityFactor: 0.3,
+    recencyBias: 0.1,
+    popularityWeight: 0.2,
+  },
+  privacy: {
+    tier: 2,
+    embeddingProvider: 'openai',
+    anonymizeQueries: true,
+  },
+};
+```
+
+**Tier 3: Full Assistant with Local LLM**
+```typescript
+const tier3LocalConfig: AIRecommendationConfig = {
+  tier: 3,
+  features: {
+    similarContent: true,
+    genreMatching: true,
+    actorDirectorMatching: true,
+    naturalLanguageSearch: true,
+    moodBasedDiscovery: true,
+    conversationalInterface: true,
+    actionableCommands: true,
+    proactiveSuggestions: true,
+  },
+  embedding: {
+    provider: 'ollama',
+    model: 'nomic-embed-text',
+    dimensions: 768,
+    batchSize: 32,
+    ollama: {
+      baseUrl: 'http://localhost:11434',
+      model: 'nomic-embed-text',
+    },
+  },
+  llm: {
+    provider: 'ollama',
+    model: 'llama3.1:8b',
+    temperature: 0.7,
+    maxTokens: 2048,
+    ollama: {
+      baseUrl: 'http://localhost:11434',
+      model: 'llama3.1:8b',
+    },
+  },
+  vectorStore: {
+    provider: 'pgvector',
+    pgvector: {
+      connectionString: process.env.DATABASE_URL!,
+      tableName: 'media_embeddings',
+      indexType: 'hnsw',
+    },
+  },
+  recommendations: {
+    maxResults: 20,
+    minSimilarityScore: 0.4,
+    diversityFactor: 0.3,
+    recencyBias: 0.1,
+    popularityWeight: 0.2,
+  },
+  privacy: {
+    tier: 3,
+    embeddingProvider: 'local',
+    llmProvider: 'local',
+    conversationRetention: 'session',
+  },
+};
+```
+
+**Tier 3: Full Assistant with Cloud Services**
+```typescript
+const tier3CloudConfig: AIRecommendationConfig = {
+  tier: 3,
+  features: {
+    similarContent: true,
+    genreMatching: true,
+    actorDirectorMatching: true,
+    naturalLanguageSearch: true,
+    moodBasedDiscovery: true,
+    conversationalInterface: true,
+    actionableCommands: true,
+    proactiveSuggestions: true,
+  },
+  embedding: {
+    provider: 'openai',
+    model: 'text-embedding-3-small',
+    dimensions: 1536,
+    batchSize: 100,
+    openai: {
+      apiKey: process.env.OPENAI_API_KEY!,
+      model: 'text-embedding-3-small',
+    },
+  },
+  llm: {
+    provider: 'anthropic',
+    model: 'claude-sonnet-4-20250514',
+    temperature: 0.7,
+    maxTokens: 2048,
+    anthropic: {
+      apiKey: process.env.ANTHROPIC_API_KEY!,
+      model: 'claude-sonnet-4-20250514',
+    },
+  },
+  vectorStore: {
+    provider: 'pgvector',
+    pgvector: {
+      connectionString: process.env.DATABASE_URL!,
+      tableName: 'media_embeddings',
+      indexType: 'hnsw',
+    },
+  },
+  recommendations: {
+    maxResults: 20,
+    minSimilarityScore: 0.4,
+    diversityFactor: 0.3,
+    recencyBias: 0.1,
+    popularityWeight: 0.2,
+  },
+  privacy: {
+    tier: 3,
+    embeddingProvider: 'openai',
+    llmProvider: 'anthropic',
+    anonymizeQueries: true,
+    summarizeHistory: true,
+    conversationRetention: 'session',
+  },
+};
 ```
 
 ---
 
-## RAG Pipeline
+## Tier 1: Local Recommendations
 
-### Pipeline Overview
+### Overview
+
+Tier 1 provides powerful recommendations using only local metadata - no external API calls, no network requirements. It analyzes your library's existing metadata to find connections between content.
+
+### Similarity Engine
+
+```typescript
+interface LocalSimilarityEngine {
+  // Core similarity methods
+  getSimilarByGenre(mediaId: number, limit?: number): Promise<SimilarItem[]>;
+  getSimilarByActor(mediaId: number, limit?: number): Promise<SimilarItem[]>;
+  getSimilarByDirector(mediaId: number, limit?: number): Promise<SimilarItem[]>;
+  getSimilarByNetwork(mediaId: number, limit?: number): Promise<SimilarItem[]>;
+
+  // Combined similarity
+  getSimilar(mediaId: number, options?: SimilarityOptions): Promise<SimilarItem[]>;
+
+  // User-based recommendations
+  getBecauseYouWatched(userId: number, recentCount?: number): Promise<RecommendationGroup[]>;
+  getBasedOnYourTaste(userId: number): Promise<SimilarItem[]>;
+}
+
+interface SimilarityOptions {
+  weights?: {
+    genre: number;      // default: 0.4
+    cast: number;       // default: 0.25
+    director: number;   // default: 0.2
+    network: number;    // default: 0.1
+    year: number;       // default: 0.05
+  };
+  limit?: number;
+  excludeWatched?: boolean;
+  excludeInLibrary?: boolean;
+}
+
+interface SimilarItem {
+  mediaType: 'series' | 'movie';
+  mediaId: number;
+  title: string;
+  year: number;
+  posterUrl?: string;
+  score: number;
+  matchFactors: MatchFactor[];
+}
+
+interface MatchFactor {
+  type: 'genre' | 'cast' | 'director' | 'network' | 'year' | 'theme';
+  value: string;
+  weight: number;
+}
+```
+
+### Implementation
+
+```typescript
+class LocalRecommendationEngine implements LocalSimilarityEngine {
+  constructor(private db: Database, private mediaService: MediaService) {}
+
+  async getSimilar(
+    mediaId: number,
+    options: SimilarityOptions = {}
+  ): Promise<SimilarItem[]> {
+    const source = await this.mediaService.getWithMetadata(mediaId);
+
+    const weights = {
+      genre: 0.4,
+      cast: 0.25,
+      director: 0.2,
+      network: 0.1,
+      year: 0.05,
+      ...options.weights,
+    };
+
+    // Get all candidates from library
+    const candidates = await this.mediaService.getAllInLibrary({
+      excludeIds: [mediaId],
+    });
+
+    // Score each candidate
+    const scored = candidates.map(candidate => {
+      const factors: MatchFactor[] = [];
+      let totalScore = 0;
+
+      // Genre overlap
+      const genreOverlap = this.calculateOverlap(source.genres, candidate.genres);
+      if (genreOverlap > 0) {
+        factors.push({
+          type: 'genre',
+          value: this.getOverlappingItems(source.genres, candidate.genres).join(', '),
+          weight: genreOverlap * weights.genre,
+        });
+        totalScore += genreOverlap * weights.genre;
+      }
+
+      // Cast overlap
+      const castOverlap = this.calculateOverlap(source.cast, candidate.cast);
+      if (castOverlap > 0) {
+        factors.push({
+          type: 'cast',
+          value: this.getOverlappingItems(source.cast, candidate.cast).join(', '),
+          weight: castOverlap * weights.cast,
+        });
+        totalScore += castOverlap * weights.cast;
+      }
+
+      // Director match
+      const directorOverlap = this.calculateOverlap(source.directors, candidate.directors);
+      if (directorOverlap > 0) {
+        factors.push({
+          type: 'director',
+          value: this.getOverlappingItems(source.directors, candidate.directors).join(', '),
+          weight: directorOverlap * weights.director,
+        });
+        totalScore += directorOverlap * weights.director;
+      }
+
+      // Network match (for series)
+      if (source.network && source.network === candidate.network) {
+        factors.push({
+          type: 'network',
+          value: source.network,
+          weight: weights.network,
+        });
+        totalScore += weights.network;
+      }
+
+      // Year proximity
+      const yearDiff = Math.abs(source.year - candidate.year);
+      const yearScore = Math.max(0, 1 - yearDiff / 20); // 20 year range
+      if (yearScore > 0.5) {
+        factors.push({
+          type: 'year',
+          value: `${candidate.year}`,
+          weight: yearScore * weights.year,
+        });
+        totalScore += yearScore * weights.year;
+      }
+
+      return {
+        mediaType: candidate.mediaType,
+        mediaId: candidate.id,
+        title: candidate.title,
+        year: candidate.year,
+        posterUrl: candidate.posterUrl,
+        score: totalScore,
+        matchFactors: factors.sort((a, b) => b.weight - a.weight),
+      };
+    });
+
+    // Filter and sort
+    return scored
+      .filter(item => item.score > 0.1)
+      .sort((a, b) => b.score - a.score)
+      .slice(0, options.limit ?? 10);
+  }
+
+  async getBecauseYouWatched(
+    userId: number,
+    recentCount: number = 5
+  ): Promise<RecommendationGroup[]> {
+    // Get recently watched items
+    const recentlyWatched = await this.db
+      .select()
+      .from(watchHistory)
+      .where(eq(watchHistory.userId, userId))
+      .orderBy(desc(watchHistory.watchedAt))
+      .limit(recentCount);
+
+    // Get similar items for each
+    const groups: RecommendationGroup[] = [];
+
+    for (const watched of recentlyWatched) {
+      const similar = await this.getSimilar(watched.mediaId, {
+        limit: 5,
+        excludeWatched: true,
+      });
+
+      if (similar.length > 0) {
+        const sourceItem = await this.mediaService.get(watched.mediaId);
+        groups.push({
+          reason: `Because you watched ${sourceItem.title}`,
+          sourceMedia: sourceItem,
+          recommendations: similar,
+        });
+      }
+    }
+
+    return groups;
+  }
+
+  private calculateOverlap(a: string[], b: string[]): number {
+    if (!a.length || !b.length) return 0;
+    const intersection = a.filter(item => b.includes(item));
+    return intersection.length / Math.max(a.length, b.length);
+  }
+
+  private getOverlappingItems(a: string[], b: string[]): string[] {
+    return a.filter(item => b.includes(item));
+  }
+}
+```
+
+### Tier 1 Use Cases
+
+| Use Case | Implementation | Example |
+|----------|----------------|---------|
+| More Like This | `getSimilar(mediaId)` | Click on Breaking Bad → See similar shows |
+| Because You Watched | `getBecauseYouWatched(userId)` | Dashboard shows related recommendations |
+| Genre Browse | `getSimilarByGenre(mediaId)` | "More Sci-Fi like this" |
+| Actor's Filmography | `getSimilarByActor(mediaId)` | "More with Bryan Cranston" |
+| Network Collection | `getSimilarByNetwork(mediaId)` | "More from HBO" |
+
+---
+
+## Tier 2: RAG-Powered Discovery
+
+### Overview
+
+Tier 2 adds semantic understanding through vector embeddings. This enables natural language search and understanding of themes, moods, and abstract concepts that aren't captured in simple metadata tags.
+
+### RAG Pipeline
 
 ```typescript
 interface RAGPipeline {
@@ -202,11 +788,8 @@ interface RAGPipeline {
   // Step 2: Retrieval
   retrieve(query: ParsedQuery, context: RetrievalContext): Promise<RetrievedDocuments>;
 
-  // Step 3: Augmentation
-  augment(query: ParsedQuery, documents: RetrievedDocuments): Promise<AugmentedContext>;
-
-  // Step 4: Generation
-  generate(context: AugmentedContext): Promise<RecommendationResponse>;
+  // Step 3: Results (no generation in Tier 2)
+  formatResults(documents: RetrievedDocuments): Promise<SearchResults>;
 }
 
 interface ParsedQuery {
@@ -214,7 +797,6 @@ interface ParsedQuery {
   intent: QueryIntent;
   entities: ExtractedEntity[];
   filters: QueryFilter[];
-  expandedTerms: string[];
 }
 
 type QueryIntent =
@@ -222,294 +804,567 @@ type QueryIntent =
   | 'natural_search'       // "Sci-fi with time travel"
   | 'mood_based'           // "Something relaxing"
   | 'specific_request'     // "The new season of Severance"
-  | 'discovery'            // "What should I watch?"
-  | 'comparison';          // "Is X better than Y?"
+  | 'discovery';           // "What should I watch?"
 
 interface ExtractedEntity {
-  type: 'series' | 'movie' | 'person' | 'genre' | 'network' | 'year';
+  type: 'series' | 'movie' | 'person' | 'genre' | 'network' | 'year' | 'mood';
   value: string;
   confidence: number;
-  resolved?: {
-    id: number;
-    title: string;
-  };
 }
 ```
 
-### Query Processing
+### Semantic Search Implementation
 
 ```typescript
-class QueryProcessor {
-  private llm: LLMProvider;
-  private entityResolver: EntityResolver;
+class SemanticSearchEngine {
+  constructor(
+    private vectorStore: VectorStore,
+    private embeddingService: EmbeddingService,
+    private localEngine: LocalSimilarityEngine
+  ) {}
 
-  async parseQuery(query: string, userId?: number): Promise<ParsedQuery> {
-    // Use LLM to understand intent and extract entities
-    const analysis = await this.llm.complete({
-      system: `You are a media recommendation assistant. Analyze the user's query and extract:
-        1. Intent (similar_content, natural_search, mood_based, discovery, comparison)
-        2. Entities (series names, genres, actors, years, networks)
-        3. Implicit filters (language, rating, length)
-        4. Mood/tone preferences`,
-      user: query,
-      responseFormat: 'json',
-    });
+  async search(
+    query: string,
+    options: SearchOptions = {}
+  ): Promise<SearchResults> {
+    // Parse query to extract entities and intent
+    const parsed = await this.parseQuery(query);
 
-    const parsed = JSON.parse(analysis) as RawQueryAnalysis;
-
-    // Resolve entities to database IDs
-    const resolvedEntities = await this.resolveEntities(parsed.entities);
-
-    // Expand query with synonyms and related terms
-    const expandedTerms = await this.expandQuery(query, parsed);
-
-    return {
-      originalQuery: query,
-      intent: parsed.intent,
-      entities: resolvedEntities,
-      filters: this.extractFilters(parsed, userId),
-      expandedTerms,
-    };
-  }
-
-  private async resolveEntities(entities: RawEntity[]): Promise<ExtractedEntity[]> {
-    return Promise.all(
-      entities.map(async (entity) => {
-        const resolved = await this.entityResolver.resolve(entity);
-        return {
-          ...entity,
-          resolved,
-        };
-      })
-    );
-  }
-
-  private async expandQuery(query: string, analysis: RawQueryAnalysis): Promise<string[]> {
-    const expansions: string[] = [query];
-
-    // Add genre synonyms
-    for (const genre of analysis.genres ?? []) {
-      const synonyms = GENRE_SYNONYMS[genre.toLowerCase()] ?? [];
-      expansions.push(...synonyms);
-    }
-
-    // Add related terms from knowledge base
-    const related = await this.knowledgeBase.getRelatedTerms(query);
-    expansions.push(...related);
-
-    return [...new Set(expansions)];
-  }
-}
-```
-
-### Retrieval Strategy
-
-```typescript
-class HybridRetriever {
-  private vectorStore: VectorStore;
-  private textSearch: TextSearchEngine;
-  private metadataFilter: MetadataFilter;
-
-  async retrieve(
-    query: ParsedQuery,
-    context: RetrievalContext
-  ): Promise<RetrievedDocuments> {
-    // Parallel retrieval from multiple sources
-    const [vectorResults, textResults, collaborativeResults] = await Promise.all([
-      this.vectorSearch(query),
-      this.textSearch.search(query.originalQuery),
-      this.collaborativeFilter(context.userId),
-    ]);
-
-    // Merge and re-rank results
-    const merged = this.mergeResults(vectorResults, textResults, collaborativeResults);
-
-    // Apply metadata filters
-    const filtered = this.metadataFilter.apply(merged, query.filters);
-
-    // Re-rank with user preferences
-    const reranked = await this.rerank(filtered, context);
-
-    return {
-      documents: reranked.slice(0, context.maxResults),
-      totalFound: filtered.length,
-      sources: {
-        vector: vectorResults.length,
-        text: textResults.length,
-        collaborative: collaborativeResults.length,
-      },
-    };
-  }
-
-  private async vectorSearch(query: ParsedQuery): Promise<ScoredDocument[]> {
-    // Generate embedding for query
-    const queryEmbedding = await this.embeddingService.embed(
-      this.buildSearchText(query)
-    );
-
-    // Search vector store
-    const results = await this.vectorStore.search({
-      vector: queryEmbedding,
-      topK: 100,
-      filter: this.buildVectorFilter(query),
-    });
-
-    return results.map(r => ({
-      id: r.id,
-      score: r.score,
-      source: 'vector',
-      metadata: r.metadata,
-    }));
-  }
-
-  private async collaborativeFilter(userId?: number): Promise<ScoredDocument[]> {
-    if (!userId) return [];
-
-    // Find similar users based on watch history
-    const similarUsers = await this.findSimilarUsers(userId);
-
-    // Get items liked by similar users but not by current user
-    const recommendations = await this.getCollaborativeRecommendations(
-      userId,
-      similarUsers
-    );
-
-    return recommendations;
-  }
-
-  private mergeResults(
-    ...resultSets: ScoredDocument[][]
-  ): ScoredDocument[] {
-    const scoreMap = new Map<string, MergedScore>();
-
-    for (const results of resultSets) {
-      for (const doc of results) {
-        const existing = scoreMap.get(doc.id);
-
-        if (existing) {
-          existing.score += doc.score * this.getSourceWeight(doc.source);
-          existing.sources.push(doc.source);
-        } else {
-          scoreMap.set(doc.id, {
-            id: doc.id,
-            score: doc.score * this.getSourceWeight(doc.source),
-            sources: [doc.source],
-            metadata: doc.metadata,
-          });
-        }
+    // Route based on query type
+    if (parsed.intent === 'similar_content' && parsed.entities.length > 0) {
+      // Use local similarity + vector enhancement
+      const sourceEntity = parsed.entities.find(e => e.type === 'series' || e.type === 'movie');
+      if (sourceEntity?.resolved) {
+        return this.enhancedSimilarSearch(sourceEntity.resolved.id, query, options);
       }
     }
 
-    // Boost items found in multiple sources
-    for (const [, merged] of scoreMap) {
-      merged.score *= 1 + (merged.sources.length - 1) * 0.2;
+    // Full semantic search
+    return this.semanticSearch(query, parsed, options);
+  }
+
+  private async semanticSearch(
+    query: string,
+    parsed: ParsedQuery,
+    options: SearchOptions
+  ): Promise<SearchResults> {
+    // Generate query embedding
+    const queryEmbedding = await this.embeddingService.embed(query);
+
+    // Search vector store
+    const vectorResults = await this.vectorStore.search({
+      vector: queryEmbedding,
+      topK: (options.limit ?? 10) * 2,
+      filter: this.buildFilter(parsed),
+    });
+
+    // Also get text search results for hybrid ranking
+    const textResults = await this.textSearch(query, options.limit ?? 10);
+
+    // Merge and re-rank
+    const merged = this.mergeResults(vectorResults, textResults);
+
+    // Apply user context if available
+    const personalized = options.userId
+      ? await this.applyUserPreferences(merged, options.userId)
+      : merged;
+
+    return {
+      items: personalized.slice(0, options.limit ?? 10),
+      query: parsed,
+      searchMode: 'semantic',
+    };
+  }
+
+  private async parseQuery(query: string): Promise<ParsedQuery> {
+    // Simple rule-based parsing for Tier 2 (no LLM)
+    const patterns = {
+      similar: /(?:like|similar to|more like)\s+["']?([^"']+)["']?/i,
+      mood: /(?:something|shows?|movies?)\s+(relaxing|exciting|funny|scary|emotional|light|dark|intense)/i,
+      genre: /(sci-fi|comedy|drama|thriller|horror|action|romance|documentary)/i,
+      decade: /(\d{4}s?|\d{2}s)/,
+    };
+
+    const entities: ExtractedEntity[] = [];
+    let intent: QueryIntent = 'natural_search';
+
+    // Check for similarity query
+    const similarMatch = query.match(patterns.similar);
+    if (similarMatch) {
+      intent = 'similar_content';
+      entities.push({
+        type: 'series',
+        value: similarMatch[1],
+        confidence: 0.9,
+      });
     }
 
-    return Array.from(scoreMap.values())
-      .sort((a, b) => b.score - a.score);
-  }
+    // Check for mood
+    const moodMatch = query.match(patterns.mood);
+    if (moodMatch) {
+      intent = 'mood_based';
+      entities.push({
+        type: 'mood',
+        value: moodMatch[1].toLowerCase(),
+        confidence: 0.85,
+      });
+    }
 
-  private getSourceWeight(source: string): number {
-    const weights: Record<string, number> = {
-      vector: 1.0,
-      text: 0.7,
-      collaborative: 0.8,
+    // Check for genre
+    const genreMatch = query.match(patterns.genre);
+    if (genreMatch) {
+      entities.push({
+        type: 'genre',
+        value: genreMatch[1].toLowerCase(),
+        confidence: 0.9,
+      });
+    }
+
+    return {
+      originalQuery: query,
+      intent,
+      entities,
+      filters: [],
     };
-    return weights[source] ?? 0.5;
   }
 }
+```
+
+### Mood Mappings
+
+```typescript
+const MOOD_MAPPINGS: Record<string, MoodMapping> = {
+  relaxing: {
+    description: 'Calm, low-stakes, feel-good content',
+    genres: ['Comedy', 'Documentary', 'Animation'],
+    excludeGenres: ['Horror', 'Thriller', 'War'],
+    keywords: ['wholesome', 'cozy', 'light-hearted', 'comfort'],
+  },
+  exciting: {
+    description: 'High energy, action-packed, thrilling',
+    genres: ['Action', 'Thriller', 'Adventure', 'Sci-Fi'],
+    excludeGenres: ['Documentary', 'Drama'],
+    keywords: ['intense', 'explosive', 'adrenaline', 'edge-of-seat'],
+  },
+  funny: {
+    description: 'Comedy, humor, laugh-out-loud',
+    genres: ['Comedy', 'Animation'],
+    excludeGenres: ['Horror', 'War', 'Drama'],
+    keywords: ['hilarious', 'witty', 'satirical', 'absurd'],
+  },
+  scary: {
+    description: 'Horror, suspense, frightening',
+    genres: ['Horror', 'Thriller'],
+    excludeGenres: ['Comedy', 'Animation', 'Documentary'],
+    keywords: ['terrifying', 'supernatural', 'psychological', 'gore'],
+  },
+  emotional: {
+    description: 'Moving, touching, thought-provoking',
+    genres: ['Drama', 'Romance'],
+    excludeGenres: ['Action', 'Comedy'],
+    keywords: ['heartfelt', 'poignant', 'tearjerker', 'bittersweet'],
+  },
+};
+```
+
+### Tier 2 Use Cases
+
+| Use Case | Query Example | How It Works |
+|----------|---------------|--------------|
+| Natural Language Search | "90s thriller with twist ending" | Embeds query, semantic similarity search |
+| Mood-Based | "Something cozy for Sunday" | Maps mood to genres + semantic search |
+| Abstract Concepts | "Shows about corporate dystopia" | Semantic matching on themes |
+| Complex Similarity | "Like Severance but more sci-fi" | Combines similarity + semantic filtering |
+| Style Search | "Visually stunning cinematography" | Embeddings capture style descriptions |
+
+---
+
+## Tier 3: Full AI Assistant
+
+### Overview
+
+Tier 3 adds a conversational LLM that understands context, provides explanations, and can take actions on your behalf. The assistant remembers conversation history and can execute multi-step workflows.
+
+### Assistant Architecture
+
+```typescript
+interface AIAssistant {
+  // Conversation
+  chat(message: string, context: ConversationContext): Promise<AssistantResponse>;
+
+  // Actions
+  executeAction(action: AssistantAction): Promise<ActionResult>;
+
+  // Proactive features
+  getDailySuggestions(userId: number): Promise<ProactiveSuggestion[]>;
+  getWatchNextSuggestion(userId: number): Promise<WatchNextSuggestion>;
+}
+
+interface ConversationContext {
+  userId: number;
+  conversationId: string;
+  history: ConversationMessage[];
+  userProfile?: UserTasteProfile;
+}
+
+interface AssistantResponse {
+  message: string;
+  recommendations?: Recommendation[];
+  suggestedActions?: SuggestedAction[];
+  followUpQuestions?: string[];
+  requiresConfirmation?: ActionConfirmation;
+}
+
+interface SuggestedAction {
+  type: 'add_to_library' | 'add_to_watchlist' | 'search_releases' | 'start_download';
+  description: string;
+  mediaId?: number;
+  confirmationRequired: boolean;
+}
+
+type AssistantAction =
+  | { type: 'add_to_library'; mediaId: number }
+  | { type: 'add_to_watchlist'; mediaId: number }
+  | { type: 'search_releases'; mediaId: number; quality?: string }
+  | { type: 'start_download'; releaseId: number }
+  | { type: 'set_preference'; preference: UserPreference };
 ```
 
 ### Response Generation
 
 ```typescript
-class ResponseGenerator {
-  private llm: LLMProvider;
+class AssistantResponseGenerator {
+  constructor(
+    private llm: LLMProvider,
+    private ragPipeline: RAGPipeline,
+    private actionExecutor: ActionExecutor
+  ) {}
 
-  async generate(context: AugmentedContext): Promise<RecommendationResponse> {
+  async generateResponse(
+    message: string,
+    context: ConversationContext
+  ): Promise<AssistantResponse> {
+    // Build context for LLM
     const systemPrompt = this.buildSystemPrompt(context);
-    const userPrompt = this.buildUserPrompt(context);
+    const userPrompt = await this.buildUserPrompt(message, context);
 
-    const response = await this.llm.complete({
+    // Generate response
+    const llmResponse = await this.llm.complete({
       system: systemPrompt,
       user: userPrompt,
       temperature: 0.7,
-      maxTokens: 1500,
+      maxTokens: 2048,
+      responseFormat: 'json',
     });
 
-    return this.parseResponse(response, context);
+    return this.parseResponse(llmResponse, context);
   }
 
-  private buildSystemPrompt(context: AugmentedContext): string {
-    return `You are a knowledgeable media recommendation assistant for idkarr.
-Your role is to provide personalized TV show and movie recommendations.
+  private buildSystemPrompt(context: ConversationContext): string {
+    return `You are a helpful media assistant for idkarr, a personal media management system.
 
-Guidelines:
-- Be conversational but concise
-- Explain WHY each recommendation fits the user's request
-- Consider the user's watch history and preferences
-- Highlight what makes each show/movie unique
-- Mention if something is already in their library
-- Suggest a mix of popular and hidden gems
+Your capabilities:
+- Recommend TV shows and movies based on user preferences
+- Explain why recommendations match the user's taste
+- Take actions like adding content to the library or starting downloads
+- Remember conversation context and follow up on previous topics
 
-User Profile:
+User Profile Summary:
 ${this.formatUserProfile(context.userProfile)}
 
-Available Context:
-${this.formatRetrievedContext(context.documents)}`;
+Available Actions:
+- add_to_library: Add a show/movie to the user's library (triggers search & download)
+- add_to_watchlist: Add to watchlist for later
+- search_releases: Search for available releases/downloads
+- start_download: Begin downloading a specific release
+
+Guidelines:
+- Be conversational and helpful
+- Explain your reasoning for recommendations
+- Ask for confirmation before taking actions that download content
+- Reference the user's watch history when relevant
+- Suggest follow-up questions to refine recommendations`;
   }
 
-  private buildUserPrompt(context: AugmentedContext): string {
-    return `User Query: "${context.query.originalQuery}"
-
-Based on the available shows/movies and the user's preferences, provide recommendations.
-
-Format your response as JSON:
-{
-  "recommendations": [
-    {
-      "id": <series_or_movie_id>,
-      "title": "<title>",
-      "reason": "<personalized explanation>",
-      "matchScore": <0-100>,
-      "highlights": ["<key feature 1>", "<key feature 2>"],
-      "similarTo": ["<reference show if applicable>"],
-      "inLibrary": <boolean>,
-      "warnings": ["<any content warnings if relevant>"]
-    }
-  ],
-  "conversationalResponse": "<Natural language summary>",
-  "followUpQuestions": ["<suggested follow-up 1>", "<suggested follow-up 2>"]
-}`;
-  }
-
-  private parseResponse(
-    llmResponse: string,
-    context: AugmentedContext
-  ): RecommendationResponse {
-    const parsed = JSON.parse(llmResponse);
-
-    // Enrich with full metadata
-    const enrichedRecommendations = parsed.recommendations.map(
-      (rec: RawRecommendation) => {
-        const fullData = context.documents.find(d => d.id === rec.id);
-        return {
-          ...rec,
-          metadata: fullData?.metadata,
-          posterUrl: fullData?.metadata?.posterUrl,
-          year: fullData?.metadata?.year,
-          rating: fullData?.metadata?.rating,
-        };
-      }
+  private async buildUserPrompt(
+    message: string,
+    context: ConversationContext
+  ): Promise<string> {
+    // Get relevant context from RAG pipeline
+    const ragContext = await this.ragPipeline.retrieve(
+      { originalQuery: message, intent: 'natural_search', entities: [], filters: [] },
+      { userId: context.userId, maxResults: 10 }
     );
 
+    return `User Message: "${message}"
+
+Recent Conversation:
+${this.formatConversationHistory(context.history.slice(-5))}
+
+Available Media for Recommendations:
+${this.formatRetrievedContext(ragContext)}
+
+Respond in JSON format:
+{
+  "message": "Your conversational response",
+  "recommendations": [
+    {
+      "mediaId": <id>,
+      "title": "<title>",
+      "reason": "<personalized explanation>",
+      "matchScore": <0-100>
+    }
+  ],
+  "suggestedActions": [
+    {
+      "type": "<action_type>",
+      "description": "<what this does>",
+      "mediaId": <optional>,
+      "confirmationRequired": <boolean>
+    }
+  ],
+  "followUpQuestions": ["<question 1>", "<question 2>"]
+}`;
+  }
+}
+```
+
+### Action Executor
+
+```typescript
+class ActionExecutor {
+  constructor(
+    private mediaService: MediaService,
+    private searchService: SearchService,
+    private downloadService: DownloadService
+  ) {}
+
+  async execute(action: AssistantAction, userId: number): Promise<ActionResult> {
+    switch (action.type) {
+      case 'add_to_library':
+        return this.addToLibrary(action.mediaId, userId);
+
+      case 'add_to_watchlist':
+        return this.addToWatchlist(action.mediaId, userId);
+
+      case 'search_releases':
+        return this.searchReleases(action.mediaId, action.quality);
+
+      case 'start_download':
+        return this.startDownload(action.releaseId, userId);
+
+      default:
+        throw new Error(`Unknown action type: ${(action as AssistantAction).type}`);
+    }
+  }
+
+  private async addToLibrary(
+    mediaId: number,
+    userId: number
+  ): Promise<ActionResult> {
+    // Add to library
+    await this.mediaService.addToLibrary(mediaId, userId);
+
+    // Automatically search for releases
+    const releases = await this.searchService.searchForMedia(mediaId);
+
+    if (releases.length > 0) {
+      // Find best release
+      const bestRelease = this.selectBestRelease(releases);
+
+      return {
+        success: true,
+        message: `Added to library. Found ${releases.length} releases. Best option: ${bestRelease.quality} from ${bestRelease.source}`,
+        data: {
+          mediaId,
+          releases: releases.slice(0, 5),
+          suggestedRelease: bestRelease,
+        },
+        nextAction: {
+          type: 'start_download',
+          description: `Download ${bestRelease.quality} version?`,
+          releaseId: bestRelease.id,
+          confirmationRequired: true,
+        },
+      };
+    }
+
     return {
-      recommendations: enrichedRecommendations,
-      conversationalResponse: parsed.conversationalResponse,
-      followUpQuestions: parsed.followUpQuestions,
-      query: context.query,
-      processingTime: Date.now() - context.startTime,
+      success: true,
+      message: 'Added to library. No releases found yet - will notify when available.',
+      data: { mediaId },
     };
+  }
+
+  private async startDownload(
+    releaseId: number,
+    userId: number
+  ): Promise<ActionResult> {
+    const download = await this.downloadService.start(releaseId, userId);
+
+    return {
+      success: true,
+      message: `Download started. ETA: ${download.eta}`,
+      data: {
+        downloadId: download.id,
+        eta: download.eta,
+        size: download.size,
+      },
+    };
+  }
+}
+```
+
+### Tier 3 Use Cases
+
+| Use Case | Conversation | Actions Taken |
+|----------|--------------|---------------|
+| Find & Add | "Find something like Severance and add the best one" | Search → Recommend → Confirm → Add → Search releases → Download |
+| Watchlist Management | "Add those last 3 to my watchlist" | Bulk add to watchlist |
+| Quality Preference | "I only want 4K versions" | Set preference → Filter future searches |
+| Continue Watching | "What should I watch tonight?" | Analyze partially watched → Suggest resume |
+| Proactive Alerts | (System-initiated) "New season of your show available" | Notify → Offer to add |
+
+### Example Tier 3 Conversation
+
+```
+User: "I need something to watch with my partner. We both liked Severance and Dark."
+Assistant: "Great picks! Both have that mysterious, mind-bending quality. Here are
+some shows you might both enjoy:
+
+1. **The OA** - Mysterious sci-fi with puzzle elements like Dark
+2. **Homecoming** - Corporate thriller vibes like Severance
+3. **Devs** - Tech mystery with beautiful visuals
+4. **Tales from the Loop** - Atmospheric sci-fi, slower pace
+
+Based on your shared tastes, I'd especially recommend The OA - it has the
+intricate mythology of Dark and the unsettling workplace energy of Severance.
+Want me to add any of these?"
+
+User: "Tell me more about The OA - is it finished?"
+Assistant: "The OA has 2 seasons (16 episodes total). Unfortunately, it was
+cancelled after season 2, so the story isn't complete - though many fans feel
+season 2 provides some closure. Fair warning before you get invested!
+
+It was created by Brit Marling and Zal Batmanglij. Very unique storytelling.
+
+Still interested, or would you prefer something with a complete ending?"
+
+User: "Let's try Devs instead - that's finished right? Add it."
+Assistant: "Yes! Devs is a limited series - 8 episodes, complete story with
+a definitive ending. Created by Alex Garland (Ex Machina, Annihilation).
+
+Adding Devs to your library now...
+[Action: add_to_library(devs)]
+
+Done! Found a 4K HDR release. Want me to start the download?"
+
+User: "Yes please"
+Assistant: "Download started! Devs (2020) - 4K HDR
+Size: 45.2 GB | ETA: ~25 minutes
+
+I'll notify you when it's ready. Enjoy the watch with your partner!"
+```
+
+---
+
+## Architecture
+
+### System Overview
+
+```
+                              ┌─────────────────────────────────────┐
+                              │           User Interface            │
+                              │  ┌─────────┐ ┌─────────┐ ┌────────┐ │
+                              │  │Dashboard│ │ Search  │ │  Chat  │ │
+                              │  │  (T1+)  │ │  (T2+)  │ │  (T3)  │ │
+                              │  └────┬────┘ └────┬────┘ └───┬────┘ │
+                              └───────┼──────────┼──────────┼───────┘
+                                      │          │          │
+                                      ▼          ▼          ▼
+┌─────────────────────────────────────────────────────────────────────────────┐
+│                          Recommendation Service                              │
+│  ┌─────────────────────────────────────────────────────────────────────┐    │
+│  │                        Tier Router                                   │    │
+│  │   Determines which engine(s) to use based on config and request     │    │
+│  └──────────────────────────────┬──────────────────────────────────────┘    │
+│                                  │                                           │
+│         ┌────────────────────────┼────────────────────────┐                 │
+│         ▼                        ▼                        ▼                 │
+│  ┌─────────────┐         ┌─────────────┐          ┌─────────────┐          │
+│  │   Tier 1    │         │   Tier 2    │          │   Tier 3    │          │
+│  │   Local     │         │    RAG      │          │  Assistant  │          │
+│  │  Similarity │         │   Search    │          │    LLM      │          │
+│  └──────┬──────┘         └──────┬──────┘          └──────┬──────┘          │
+│         │                       │                        │                  │
+│         │                       ▼                        ▼                  │
+│         │              ┌─────────────────┐      ┌─────────────────┐        │
+│         │              │ Embedding Svc   │      │  LLM Provider   │        │
+│         │              │ (Local/Cloud)   │      │  (Local/Cloud)  │        │
+│         │              └────────┬────────┘      └────────┬────────┘        │
+│         │                       │                        │                  │
+│         │                       ▼                        │                  │
+│         │              ┌─────────────────┐               │                  │
+│         │              │  Vector Store   │◄──────────────┘                  │
+│         │              │   (pgvector)    │                                  │
+│         │              └────────┬────────┘                                  │
+│         │                       │                                           │
+│         ▼                       ▼                                           │
+│  ┌──────────────────────────────────────────────────────────────────┐      │
+│  │                      PostgreSQL Database                          │      │
+│  │   • Media metadata    • User preferences    • Watch history      │      │
+│  │   • Embeddings        • Conversations       • Feedback           │      │
+│  └──────────────────────────────────────────────────────────────────┘      │
+└─────────────────────────────────────────────────────────────────────────────┘
+                                      │
+                    ┌─────────────────┼─────────────────┐
+                    ▼                 ▼                 ▼
+           ┌──────────────┐  ┌──────────────┐  ┌──────────────┐
+           │  Local Only  │  │ Ollama (opt) │  │ Cloud APIs   │
+           │   No deps    │  │  Embeddings  │  │   (opt)      │
+           │              │  │     LLM      │  │  OpenAI      │
+           │              │  │              │  │  Anthropic   │
+           └──────────────┘  └──────────────┘  └──────────────┘
+                Tier 1           Tier 2/3          Tier 2/3
+```
+
+### Tier Detection and Routing
+
+```typescript
+class TierRouter {
+  constructor(private config: AIRecommendationConfig) {}
+
+  async route(request: RecommendationRequest): Promise<RecommendationResponse> {
+    const { tier } = this.config;
+
+    // Tier 3: Conversational requests
+    if (tier >= 3 && request.type === 'conversation') {
+      return this.tier3Handler.handle(request);
+    }
+
+    // Tier 2: Natural language search
+    if (tier >= 2 && request.type === 'natural_language') {
+      return this.tier2Handler.handle(request);
+    }
+
+    // Tier 1: Local similarity (always available)
+    return this.tier1Handler.handle(request);
+  }
+
+  getAvailableFeatures(): FeatureSet {
+    const features: FeatureSet = {
+      similarContent: true,
+      genreMatching: true,
+      actorDirectorMatching: true,
+      naturalLanguageSearch: this.config.tier >= 2,
+      moodBasedDiscovery: this.config.tier >= 2,
+      conversationalInterface: this.config.tier >= 3,
+      actionableCommands: this.config.tier >= 3,
+      proactiveSuggestions: this.config.tier >= 3,
+    };
+
+    // Override with explicit feature flags
+    return { ...features, ...this.config.features };
   }
 }
 ```
@@ -522,27 +1377,17 @@ Format your response as JSON:
 
 ```typescript
 interface MediaEmbeddingData {
-  // Identity
   id: number;
   type: 'series' | 'movie';
   title: string;
-
-  // Text content for embedding
   overview: string;
   genres: string[];
   keywords: string[];
   cast: string[];
   directors: string[];
   network?: string;
-
-  // Structured metadata (not embedded, used for filtering)
   year: number;
   rating: number;
-  voteCount: number;
-  runtime?: number;
-  status?: string;
-  language: string;
-  country: string;
 }
 
 class EmbeddingService {
@@ -550,91 +1395,39 @@ class EmbeddingService {
   private cache: EmbeddingCache;
 
   async embedMedia(media: MediaEmbeddingData): Promise<number[]> {
-    // Check cache first
     const cacheKey = `embed:${media.type}:${media.id}`;
     const cached = await this.cache.get(cacheKey);
     if (cached) return cached;
 
-    // Build embedding text
     const text = this.buildEmbeddingText(media);
-
-    // Generate embedding
     const embedding = await this.provider.embed(text);
 
-    // Cache for future use
-    await this.cache.set(cacheKey, embedding, { ttl: 86400 * 7 }); // 7 days
-
+    await this.cache.set(cacheKey, embedding, { ttl: 86400 * 7 });
     return embedding;
   }
 
   private buildEmbeddingText(media: MediaEmbeddingData): string {
     const parts: string[] = [];
 
-    // Title with type context
     parts.push(`${media.type === 'series' ? 'TV Series' : 'Movie'}: ${media.title}`);
 
-    // Overview (main content)
     if (media.overview) {
       parts.push(media.overview);
     }
 
-    // Genres
     if (media.genres.length) {
       parts.push(`Genres: ${media.genres.join(', ')}`);
     }
 
-    // Keywords/themes
     if (media.keywords.length) {
       parts.push(`Themes: ${media.keywords.join(', ')}`);
     }
 
-    // Key cast
     if (media.cast.length) {
       parts.push(`Starring: ${media.cast.slice(0, 5).join(', ')}`);
     }
 
-    // Network/studio context
-    if (media.network) {
-      parts.push(`Network: ${media.network}`);
-    }
-
     return parts.join('\n\n');
-  }
-
-  async embedBatch(items: MediaEmbeddingData[]): Promise<Map<number, number[]>> {
-    const results = new Map<number, number[]>();
-    const toEmbed: MediaEmbeddingData[] = [];
-
-    // Check cache for all items
-    for (const item of items) {
-      const cacheKey = `embed:${item.type}:${item.id}`;
-      const cached = await this.cache.get(cacheKey);
-
-      if (cached) {
-        results.set(item.id, cached);
-      } else {
-        toEmbed.push(item);
-      }
-    }
-
-    // Batch embed remaining items
-    if (toEmbed.length > 0) {
-      const texts = toEmbed.map(item => this.buildEmbeddingText(item));
-      const embeddings = await this.provider.embedBatch(texts);
-
-      for (let i = 0; i < toEmbed.length; i++) {
-        const item = toEmbed[i];
-        const embedding = embeddings[i];
-
-        results.set(item.id, embedding);
-
-        // Cache
-        const cacheKey = `embed:${item.type}:${item.id}`;
-        await this.cache.set(cacheKey, embedding, { ttl: 86400 * 7 });
-      }
-    }
-
-    return results;
   }
 }
 ```
@@ -642,111 +1435,44 @@ class EmbeddingService {
 ### Embedding Providers
 
 ```typescript
-// OpenAI Embeddings
-class OpenAIEmbeddingProvider implements EmbeddingProvider {
-  private client: OpenAI;
-
-  constructor(config: OpenAIEmbeddingConfig) {
-    this.client = new OpenAI({ apiKey: config.apiKey });
-    this.model = config.model ?? 'text-embedding-3-small';
-  }
-
-  async embed(text: string): Promise<number[]> {
-    const response = await this.client.embeddings.create({
-      model: this.model,
-      input: text,
-    });
-
-    return response.data[0].embedding;
-  }
-
-  async embedBatch(texts: string[]): Promise<number[][]> {
-    const response = await this.client.embeddings.create({
-      model: this.model,
-      input: texts,
-    });
-
-    return response.data.map(d => d.embedding);
-  }
-
-  get dimensions(): number {
-    const dims: Record<string, number> = {
-      'text-embedding-3-small': 1536,
-      'text-embedding-3-large': 3072,
-      'text-embedding-ada-002': 1536,
-    };
-    return dims[this.model];
-  }
-}
-
-// Ollama Embeddings (Local)
+// Ollama (Local)
 class OllamaEmbeddingProvider implements EmbeddingProvider {
-  private baseUrl: string;
-  private model: string;
-
-  constructor(config: OllamaEmbeddingConfig) {
-    this.baseUrl = config.baseUrl ?? 'http://localhost:11434';
-    this.model = config.model ?? 'nomic-embed-text';
-  }
+  constructor(private config: { baseUrl: string; model: string }) {}
 
   async embed(text: string): Promise<number[]> {
-    const response = await fetch(`${this.baseUrl}/api/embeddings`, {
+    const response = await fetch(`${this.config.baseUrl}/api/embeddings`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: this.model,
-        prompt: text,
-      }),
+      body: JSON.stringify({ model: this.config.model, prompt: text }),
     });
-
     const data = await response.json();
     return data.embedding;
-  }
-
-  async embedBatch(texts: string[]): Promise<number[][]> {
-    // Ollama doesn't support batch, so we parallelize
-    return Promise.all(texts.map(text => this.embed(text)));
   }
 
   get dimensions(): number {
     const dims: Record<string, number> = {
       'nomic-embed-text': 768,
       'mxbai-embed-large': 1024,
-      'all-minilm': 384,
     };
-    return dims[this.model] ?? 768;
+    return dims[this.config.model] ?? 768;
   }
 }
 
-// HuggingFace Local Embeddings
-class LocalEmbeddingProvider implements EmbeddingProvider {
-  private pipeline: Pipeline;
-
-  async initialize(modelPath: string): Promise<void> {
-    // Using transformers.js or similar
-    this.pipeline = await pipeline(
-      'feature-extraction',
-      modelPath,
-      { quantized: true }
-    );
-  }
+// OpenAI (Cloud)
+class OpenAIEmbeddingProvider implements EmbeddingProvider {
+  constructor(private config: { apiKey: string; model: string }) {}
 
   async embed(text: string): Promise<number[]> {
-    const output = await this.pipeline(text, {
-      pooling: 'mean',
-      normalize: true,
+    const response = await fetch('https://api.openai.com/v1/embeddings', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${this.config.apiKey}`,
+      },
+      body: JSON.stringify({ model: this.config.model, input: text }),
     });
-
-    return Array.from(output.data);
-  }
-
-  async embedBatch(texts: string[]): Promise<number[][]> {
-    const outputs = await this.pipeline(texts, {
-      pooling: 'mean',
-      normalize: true,
-    });
-
-    return outputs.map((o: Tensor) => Array.from(o.data));
+    const data = await response.json();
+    return data.data[0].embedding;
   }
 }
 ```
@@ -764,459 +1490,42 @@ CREATE EXTENSION IF NOT EXISTS vector;
 -- Media embeddings table
 CREATE TABLE media_embeddings (
   id SERIAL PRIMARY KEY,
-  media_type VARCHAR(10) NOT NULL, -- 'series' or 'movie'
+  media_type VARCHAR(10) NOT NULL,
   media_id INTEGER NOT NULL,
-  embedding vector(1536), -- Adjust dimension based on model
+  embedding vector(1536),
   embedding_model VARCHAR(100) NOT NULL,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW(),
-
   UNIQUE(media_type, media_id, embedding_model)
 );
 
--- Create HNSW index for fast similarity search
+-- HNSW index for fast similarity search
 CREATE INDEX ON media_embeddings
 USING hnsw (embedding vector_cosine_ops)
 WITH (m = 16, ef_construction = 64);
 
--- User taste profile embeddings
+-- User taste embeddings
 CREATE TABLE user_taste_embeddings (
   id SERIAL PRIMARY KEY,
   user_id INTEGER NOT NULL REFERENCES users(id),
   embedding vector(1536),
   embedding_model VARCHAR(100) NOT NULL,
-  watch_count INTEGER DEFAULT 0,
   created_at TIMESTAMP DEFAULT NOW(),
   updated_at TIMESTAMP DEFAULT NOW(),
-
   UNIQUE(user_id, embedding_model)
 );
-
--- Search history for learning
-CREATE TABLE recommendation_feedback (
-  id SERIAL PRIMARY KEY,
-  user_id INTEGER REFERENCES users(id),
-  query TEXT NOT NULL,
-  recommended_media_id INTEGER NOT NULL,
-  recommended_media_type VARCHAR(10) NOT NULL,
-  feedback_type VARCHAR(20), -- 'clicked', 'added', 'watched', 'dismissed'
-  created_at TIMESTAMP DEFAULT NOW()
-);
-
-CREATE INDEX ON recommendation_feedback(user_id, created_at DESC);
-```
-
-### Vector Store Service
-
-```typescript
-class PgVectorStore implements VectorStore {
-  private db: Database;
-  private tableName: string;
-
-  async upsert(items: VectorItem[]): Promise<void> {
-    const values = items.map(item => ({
-      media_type: item.mediaType,
-      media_id: item.mediaId,
-      embedding: `[${item.embedding.join(',')}]`,
-      embedding_model: item.model,
-      updated_at: new Date(),
-    }));
-
-    await this.db
-      .insert(mediaEmbeddings)
-      .values(values)
-      .onConflictDoUpdate({
-        target: [mediaEmbeddings.mediaType, mediaEmbeddings.mediaId, mediaEmbeddings.embeddingModel],
-        set: {
-          embedding: sql`EXCLUDED.embedding`,
-          updatedAt: new Date(),
-        },
-      });
-  }
-
-  async search(params: VectorSearchParams): Promise<VectorSearchResult[]> {
-    const { vector, topK, filter } = params;
-
-    let query = this.db
-      .select({
-        mediaId: mediaEmbeddings.mediaId,
-        mediaType: mediaEmbeddings.mediaType,
-        distance: sql<number>`embedding <=> ${`[${vector.join(',')}]`}::vector`,
-      })
-      .from(mediaEmbeddings)
-      .orderBy(sql`embedding <=> ${`[${vector.join(',')}]`}::vector`)
-      .limit(topK);
-
-    // Apply filters
-    if (filter?.mediaType) {
-      query = query.where(eq(mediaEmbeddings.mediaType, filter.mediaType));
-    }
-
-    const results = await query;
-
-    // Convert distance to similarity score (cosine distance to similarity)
-    return results.map(r => ({
-      id: `${r.mediaType}:${r.mediaId}`,
-      mediaId: r.mediaId,
-      mediaType: r.mediaType,
-      score: 1 - r.distance, // Cosine similarity
-    }));
-  }
-
-  async findSimilar(
-    mediaType: string,
-    mediaId: number,
-    topK: number = 10
-  ): Promise<VectorSearchResult[]> {
-    // Get the embedding for the source item
-    const source = await this.db
-      .select({ embedding: mediaEmbeddings.embedding })
-      .from(mediaEmbeddings)
-      .where(
-        and(
-          eq(mediaEmbeddings.mediaType, mediaType),
-          eq(mediaEmbeddings.mediaId, mediaId)
-        )
-      )
-      .limit(1);
-
-    if (!source.length) {
-      throw new Error(`No embedding found for ${mediaType}:${mediaId}`);
-    }
-
-    // Find similar items (excluding the source)
-    return this.db
-      .select({
-        mediaId: mediaEmbeddings.mediaId,
-        mediaType: mediaEmbeddings.mediaType,
-        distance: sql<number>`embedding <=> ${source[0].embedding}`,
-      })
-      .from(mediaEmbeddings)
-      .where(
-        not(
-          and(
-            eq(mediaEmbeddings.mediaType, mediaType),
-            eq(mediaEmbeddings.mediaId, mediaId)
-          )
-        )
-      )
-      .orderBy(sql`embedding <=> ${source[0].embedding}`)
-      .limit(topK)
-      .then(results =>
-        results.map(r => ({
-          id: `${r.mediaType}:${r.mediaId}`,
-          mediaId: r.mediaId,
-          mediaType: r.mediaType,
-          score: 1 - r.distance,
-        }))
-      );
-  }
-}
-```
-
----
-
-## Recommendation Engine
-
-### Recommendation Types
-
-```typescript
-interface RecommendationEngine {
-  // Similar content based on a specific item
-  getSimilar(
-    mediaType: 'series' | 'movie',
-    mediaId: number,
-    options?: SimilarOptions
-  ): Promise<Recommendation[]>;
-
-  // Personalized recommendations for user
-  getPersonalized(
-    userId: number,
-    options?: PersonalizedOptions
-  ): Promise<Recommendation[]>;
-
-  // Natural language query
-  queryNaturalLanguage(
-    query: string,
-    userId?: number,
-    options?: QueryOptions
-  ): Promise<RecommendationResponse>;
-
-  // Mood-based recommendations
-  getMoodBased(
-    mood: string,
-    userId?: number,
-    options?: MoodOptions
-  ): Promise<Recommendation[]>;
-
-  // Discovery - new content user might like
-  getDiscovery(
-    userId: number,
-    options?: DiscoveryOptions
-  ): Promise<Recommendation[]>;
-}
-
-interface Recommendation {
-  mediaType: 'series' | 'movie';
-  mediaId: number;
-  title: string;
-  year: number;
-  posterUrl?: string;
-  overview: string;
-  genres: string[];
-  rating: number;
-
-  // Recommendation metadata
-  score: number;
-  reason: string;
-  matchFactors: MatchFactor[];
-  source: RecommendationSource;
-
-  // User context
-  inLibrary: boolean;
-  inWatchlist: boolean;
-  watched: boolean;
-}
-
-interface MatchFactor {
-  type: 'genre' | 'theme' | 'cast' | 'director' | 'style' | 'mood' | 'era';
-  value: string;
-  weight: number;
-}
-
-type RecommendationSource =
-  | 'vector_similarity'
-  | 'collaborative'
-  | 'content_based'
-  | 'trending'
-  | 'llm_generated';
-```
-
-### Engine Implementation
-
-```typescript
-class RecommendationEngineImpl implements RecommendationEngine {
-  constructor(
-    private vectorStore: VectorStore,
-    private embeddingService: EmbeddingService,
-    private ragPipeline: RAGPipeline,
-    private userPreferenceService: UserPreferenceService,
-    private mediaService: MediaService
-  ) {}
-
-  async getSimilar(
-    mediaType: 'series' | 'movie',
-    mediaId: number,
-    options: SimilarOptions = {}
-  ): Promise<Recommendation[]> {
-    const { limit = 10, excludeInLibrary = false, userId } = options;
-
-    // Get similar items from vector store
-    const similar = await this.vectorStore.findSimilar(
-      mediaType,
-      mediaId,
-      limit * 2 // Get extra to allow for filtering
-    );
-
-    // Get source item for comparison
-    const sourceItem = await this.mediaService.get(mediaType, mediaId);
-
-    // Enrich with metadata
-    const enriched = await this.enrichRecommendations(similar, userId);
-
-    // Filter and re-rank
-    let filtered = enriched;
-
-    if (excludeInLibrary && userId) {
-      filtered = filtered.filter(r => !r.inLibrary);
-    }
-
-    // Add explanations
-    const withReasons = filtered.map(rec => ({
-      ...rec,
-      reason: this.generateSimilarityReason(sourceItem, rec),
-      source: 'vector_similarity' as RecommendationSource,
-    }));
-
-    return withReasons.slice(0, limit);
-  }
-
-  async getPersonalized(
-    userId: number,
-    options: PersonalizedOptions = {}
-  ): Promise<Recommendation[]> {
-    const { limit = 20, mediaTypes = ['series', 'movie'] } = options;
-
-    // Get user taste profile
-    const userProfile = await this.userPreferenceService.getTasteProfile(userId);
-
-    // Multi-strategy recommendation
-    const [
-      tasteBasedRecs,
-      collaborativeRecs,
-      trendingRecs,
-    ] = await Promise.all([
-      this.getTasteBasedRecommendations(userProfile, limit),
-      this.getCollaborativeRecommendations(userId, limit),
-      this.getTrendingRecommendations(mediaTypes, limit / 2),
-    ]);
-
-    // Merge and dedupe
-    const merged = this.mergeRecommendations([
-      { recs: tasteBasedRecs, weight: 0.5 },
-      { recs: collaborativeRecs, weight: 0.3 },
-      { recs: trendingRecs, weight: 0.2 },
-    ]);
-
-    // Apply diversity
-    const diverse = this.applyDiversity(merged, options.diversityFactor ?? 0.3);
-
-    // Filter already watched/in library
-    const filtered = diverse.filter(r => !r.watched);
-
-    return filtered.slice(0, limit);
-  }
-
-  async queryNaturalLanguage(
-    query: string,
-    userId?: number,
-    options: QueryOptions = {}
-  ): Promise<RecommendationResponse> {
-    // Full RAG pipeline
-    const userProfile = userId
-      ? await this.userPreferenceService.getTasteProfile(userId)
-      : null;
-
-    const context: RetrievalContext = {
-      userId,
-      userProfile,
-      maxResults: options.limit ?? 10,
-      mediaTypes: options.mediaTypes ?? ['series', 'movie'],
-    };
-
-    return this.ragPipeline.process(query, context);
-  }
-
-  async getMoodBased(
-    mood: string,
-    userId?: number,
-    options: MoodOptions = {}
-  ): Promise<Recommendation[]> {
-    // Map mood to search terms and genres
-    const moodMapping = MOOD_MAPPINGS[mood.toLowerCase()];
-
-    if (!moodMapping) {
-      // Use LLM to interpret unknown mood
-      return this.queryNaturalLanguage(
-        `I want to watch something ${mood}`,
-        userId,
-        options
-      ).then(r => r.recommendations);
-    }
-
-    // Search with mood-mapped terms
-    const queryEmbedding = await this.embeddingService.embed(
-      `${moodMapping.description}. ${moodMapping.genres.join(', ')}`
-    );
-
-    const results = await this.vectorStore.search({
-      vector: queryEmbedding,
-      topK: options.limit ?? 10,
-      filter: {
-        genres: moodMapping.genres,
-        excludeGenres: moodMapping.excludeGenres,
-      },
-    });
-
-    return this.enrichRecommendations(results, userId);
-  }
-
-  private async getTasteBasedRecommendations(
-    profile: UserTasteProfile,
-    limit: number
-  ): Promise<Recommendation[]> {
-    // Search using user's taste embedding
-    const results = await this.vectorStore.search({
-      vector: profile.tasteEmbedding,
-      topK: limit * 2,
-    });
-
-    return this.enrichRecommendations(results, profile.userId);
-  }
-
-  private async getCollaborativeRecommendations(
-    userId: number,
-    limit: number
-  ): Promise<Recommendation[]> {
-    // Find users with similar taste
-    const similarUsers = await this.userPreferenceService.findSimilarUsers(
-      userId,
-      10
-    );
-
-    // Get items liked by similar users but not by current user
-    const candidates = await this.mediaService.getLikedByUsers(
-      similarUsers.map(u => u.userId),
-      { excludeUserId: userId }
-    );
-
-    // Score by how many similar users liked each item
-    const scored = candidates.map(item => ({
-      ...item,
-      score: similarUsers
-        .filter(u => u.likedItems.includes(item.id))
-        .reduce((sum, u) => sum + u.similarity, 0),
-    }));
-
-    return scored
-      .sort((a, b) => b.score - a.score)
-      .slice(0, limit);
-  }
-
-  private applyDiversity(
-    recommendations: Recommendation[],
-    factor: number
-  ): Recommendation[] {
-    if (factor === 0) return recommendations;
-
-    const diverse: Recommendation[] = [];
-    const genreCounts = new Map<string, number>();
-
-    for (const rec of recommendations) {
-      // Calculate penalty based on genre representation
-      const avgGenreCount = rec.genres.reduce(
-        (sum, g) => sum + (genreCounts.get(g) ?? 0),
-        0
-      ) / rec.genres.length;
-
-      const penalty = avgGenreCount * factor * 0.1;
-      const adjustedScore = rec.score - penalty;
-
-      // Add with adjusted score
-      diverse.push({ ...rec, score: adjustedScore });
-
-      // Update genre counts
-      for (const genre of rec.genres) {
-        genreCounts.set(genre, (genreCounts.get(genre) ?? 0) + 1);
-      }
-    }
-
-    return diverse.sort((a, b) => b.score - a.score);
-  }
-}
 ```
 
 ---
 
 ## LLM Integration
 
-### LLM Provider Interface
+### Provider Interface
 
 ```typescript
 interface LLMProvider {
   complete(request: CompletionRequest): Promise<string>;
   stream(request: CompletionRequest): AsyncIterable<string>;
-  countTokens(text: string): number;
 }
 
 interface CompletionRequest {
@@ -1225,63 +1534,21 @@ interface CompletionRequest {
   temperature?: number;
   maxTokens?: number;
   responseFormat?: 'text' | 'json';
-  stop?: string[];
 }
+```
 
-// Anthropic Claude Implementation
-class ClaudeProvider implements LLMProvider {
-  private client: Anthropic;
+### Ollama Provider (Local)
 
-  constructor(config: ClaudeConfig) {
-    this.client = new Anthropic({ apiKey: config.apiKey });
-    this.model = config.model ?? 'claude-sonnet-4-20250514';
-  }
-
-  async complete(request: CompletionRequest): Promise<string> {
-    const response = await this.client.messages.create({
-      model: this.model,
-      max_tokens: request.maxTokens ?? 1024,
-      system: request.system,
-      messages: [{ role: 'user', content: request.user }],
-    });
-
-    return response.content[0].type === 'text'
-      ? response.content[0].text
-      : '';
-  }
-
-  async *stream(request: CompletionRequest): AsyncIterable<string> {
-    const stream = await this.client.messages.stream({
-      model: this.model,
-      max_tokens: request.maxTokens ?? 1024,
-      system: request.system,
-      messages: [{ role: 'user', content: request.user }],
-    });
-
-    for await (const event of stream) {
-      if (event.type === 'content_block_delta' && event.delta.type === 'text_delta') {
-        yield event.delta.text;
-      }
-    }
-  }
-}
-
-// Ollama Local LLM Implementation
+```typescript
 class OllamaProvider implements LLMProvider {
-  private baseUrl: string;
-  private model: string;
-
-  constructor(config: OllamaConfig) {
-    this.baseUrl = config.baseUrl ?? 'http://localhost:11434';
-    this.model = config.model ?? 'llama3.1';
-  }
+  constructor(private config: { baseUrl: string; model: string }) {}
 
   async complete(request: CompletionRequest): Promise<string> {
-    const response = await fetch(`${this.baseUrl}/api/generate`, {
+    const response = await fetch(`${this.config.baseUrl}/api/generate`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        model: this.model,
+        model: this.config.model,
         prompt: this.formatPrompt(request),
         stream: false,
         options: {
@@ -1290,39 +1557,8 @@ class OllamaProvider implements LLMProvider {
         },
       }),
     });
-
     const data = await response.json();
     return data.response;
-  }
-
-  async *stream(request: CompletionRequest): AsyncIterable<string> {
-    const response = await fetch(`${this.baseUrl}/api/generate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        model: this.model,
-        prompt: this.formatPrompt(request),
-        stream: true,
-      }),
-    });
-
-    const reader = response.body!.getReader();
-    const decoder = new TextDecoder();
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      const chunk = decoder.decode(value);
-      const lines = chunk.split('\n').filter(Boolean);
-
-      for (const line of lines) {
-        const data = JSON.parse(line);
-        if (data.response) {
-          yield data.response;
-        }
-      }
-    }
   }
 
   private formatPrompt(request: CompletionRequest): string {
@@ -1330,6 +1566,33 @@ class OllamaProvider implements LLMProvider {
       return `${request.system}\n\nUser: ${request.user}\n\nAssistant:`;
     }
     return request.user;
+  }
+}
+```
+
+### Anthropic Provider (Cloud)
+
+```typescript
+class AnthropicProvider implements LLMProvider {
+  constructor(private config: { apiKey: string; model: string }) {}
+
+  async complete(request: CompletionRequest): Promise<string> {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': this.config.apiKey,
+        'anthropic-version': '2023-06-01',
+      },
+      body: JSON.stringify({
+        model: this.config.model,
+        max_tokens: request.maxTokens ?? 1024,
+        system: request.system,
+        messages: [{ role: 'user', content: request.user }],
+      }),
+    });
+    const data = await response.json();
+    return data.content[0].text;
   }
 }
 ```
@@ -1344,165 +1607,43 @@ class OllamaProvider implements LLMProvider {
 interface UserTasteProfile {
   userId: number;
   tasteEmbedding: number[];
-
-  // Explicit preferences
   favoriteGenres: WeightedPreference[];
   dislikedGenres: WeightedPreference[];
-  favoriteDecades: WeightedPreference[];
-  preferredRuntime: { min: number; max: number };
-  preferredRating: { min: number; max: number };
-
-  // Derived from watch history
   watchedGenreDistribution: Map<string, number>;
   avgWatchedRating: number;
-  completionRate: number; // How often they finish series
-
-  // Implicit signals
-  browsingPatterns: BrowsingPattern[];
-  searchHistory: SearchHistoryItem[];
-
+  completionRate: number;
   lastUpdated: Date;
-}
-
-interface WeightedPreference {
-  value: string;
-  weight: number; // -1 to 1, negative means dislike
-  source: 'explicit' | 'implicit';
 }
 
 class UserPreferenceService {
   async getTasteProfile(userId: number): Promise<UserTasteProfile> {
-    // Check cache
     const cached = await this.cache.get(`taste:${userId}`);
     if (cached && !this.isStale(cached)) {
       return cached;
     }
 
-    // Build profile from various sources
-    const [
-      watchHistory,
-      ratings,
-      explicitPrefs,
-      browsingData,
-    ] = await Promise.all([
+    const [watchHistory, ratings, explicitPrefs] = await Promise.all([
       this.getWatchHistory(userId),
       this.getUserRatings(userId),
       this.getExplicitPreferences(userId),
-      this.getBrowsingData(userId),
     ]);
 
-    // Calculate genre preferences from watch history
     const genreDistribution = this.calculateGenreDistribution(watchHistory);
-
-    // Generate taste embedding
-    const tasteEmbedding = await this.generateTasteEmbedding(
-      watchHistory,
-      ratings,
-      explicitPrefs
-    );
+    const tasteEmbedding = await this.generateTasteEmbedding(watchHistory, ratings);
 
     const profile: UserTasteProfile = {
       userId,
       tasteEmbedding,
       favoriteGenres: this.extractFavoriteGenres(genreDistribution, explicitPrefs),
       dislikedGenres: explicitPrefs.dislikedGenres ?? [],
-      favoriteDecades: this.extractDecadePreferences(watchHistory),
-      preferredRuntime: this.calculateRuntimePreference(watchHistory),
-      preferredRating: this.calculateRatingPreference(watchHistory),
       watchedGenreDistribution: genreDistribution,
       avgWatchedRating: this.calculateAvgRating(watchHistory),
       completionRate: this.calculateCompletionRate(watchHistory),
-      browsingPatterns: browsingData.patterns,
-      searchHistory: browsingData.searches,
       lastUpdated: new Date(),
     };
 
-    // Cache profile
-    await this.cache.set(`taste:${userId}`, profile, { ttl: 3600 }); // 1 hour
-
+    await this.cache.set(`taste:${userId}`, profile, { ttl: 3600 });
     return profile;
-  }
-
-  private async generateTasteEmbedding(
-    watchHistory: WatchedItem[],
-    ratings: UserRating[],
-    explicitPrefs: ExplicitPreferences
-  ): Promise<number[]> {
-    // Get embeddings for highly-rated watched items
-    const highlyRated = watchHistory.filter(item => {
-      const rating = ratings.find(r => r.mediaId === item.mediaId);
-      return rating && rating.score >= 7;
-    });
-
-    if (highlyRated.length === 0) {
-      // No watch history, use explicit preferences
-      const prefText = this.buildPreferenceText(explicitPrefs);
-      return this.embeddingService.embed(prefText);
-    }
-
-    // Get embeddings for top items
-    const topItems = highlyRated
-      .sort((a, b) => {
-        const ratingA = ratings.find(r => r.mediaId === a.mediaId)?.score ?? 0;
-        const ratingB = ratings.find(r => r.mediaId === b.mediaId)?.score ?? 0;
-        return ratingB - ratingA;
-      })
-      .slice(0, 20);
-
-    const embeddings = await Promise.all(
-      topItems.map(item =>
-        this.vectorStore.getEmbedding(item.mediaType, item.mediaId)
-      )
-    );
-
-    // Weight by rating and recency
-    const weights = topItems.map((item, i) => {
-      const rating = ratings.find(r => r.mediaId === item.mediaId)?.score ?? 5;
-      const recencyFactor = Math.exp(-i * 0.1); // Decay for older items
-      return (rating / 10) * recencyFactor;
-    });
-
-    // Weighted average of embeddings
-    return this.weightedAverageEmbedding(embeddings, weights);
-  }
-
-  private weightedAverageEmbedding(
-    embeddings: number[][],
-    weights: number[]
-  ): number[] {
-    const totalWeight = weights.reduce((a, b) => a + b, 0);
-    const dimensions = embeddings[0].length;
-    const result = new Array(dimensions).fill(0);
-
-    for (let i = 0; i < embeddings.length; i++) {
-      const weight = weights[i] / totalWeight;
-      for (let j = 0; j < dimensions; j++) {
-        result[j] += embeddings[i][j] * weight;
-      }
-    }
-
-    // Normalize
-    const magnitude = Math.sqrt(result.reduce((sum, v) => sum + v * v, 0));
-    return result.map(v => v / magnitude);
-  }
-
-  async updateFromFeedback(
-    userId: number,
-    feedback: RecommendationFeedback
-  ): Promise<void> {
-    // Record feedback
-    await this.db.insert(recommendationFeedback).values({
-      userId,
-      query: feedback.query,
-      recommendedMediaId: feedback.mediaId,
-      recommendedMediaType: feedback.mediaType,
-      feedbackType: feedback.type,
-    });
-
-    // Invalidate cached profile if significant feedback
-    if (['watched', 'added', 'dismissed'].includes(feedback.type)) {
-      await this.cache.delete(`taste:${userId}`);
-    }
   }
 }
 ```
@@ -1515,205 +1656,63 @@ class UserPreferenceService {
 
 ```typescript
 // GET /api/v1/recommendations
+// Works with all tiers
 interface GetRecommendationsRequest {
-  type?: 'personalized' | 'trending' | 'new';
-  mediaTypes?: ('series' | 'movie')[];
+  type?: 'personalized' | 'similar' | 'trending';
+  mediaId?: number;  // Required for type='similar'
   limit?: number;
-  offset?: number;
 }
 
-// GET /api/v1/recommendations/similar/:mediaType/:id
-interface GetSimilarRequest {
-  limit?: number;
-  excludeInLibrary?: boolean;
-}
-
-// POST /api/v1/recommendations/query
-interface NaturalLanguageQueryRequest {
+// POST /api/v1/recommendations/search (Tier 2+)
+interface NaturalLanguageSearchRequest {
   query: string;
   mediaTypes?: ('series' | 'movie')[];
   limit?: number;
-  includeExplanation?: boolean;
 }
 
-// GET /api/v1/recommendations/mood/:mood
-interface GetMoodBasedRequest {
-  limit?: number;
-  mediaTypes?: ('series' | 'movie')[];
+// POST /api/v1/recommendations/chat (Tier 3)
+interface ChatRequest {
+  message: string;
+  conversationId?: string;  // For context continuity
 }
 
-// POST /api/v1/recommendations/feedback
-interface SubmitFeedbackRequest {
-  recommendationId: string;
-  mediaType: 'series' | 'movie';
-  mediaId: number;
-  feedbackType: 'clicked' | 'added' | 'watched' | 'dismissed';
-  query?: string;
+interface ChatResponse {
+  message: string;
+  recommendations?: Recommendation[];
+  suggestedActions?: SuggestedAction[];
+  followUpQuestions?: string[];
+  conversationId: string;
 }
 
-// Response types
-interface RecommendationListResponse {
-  recommendations: Recommendation[];
-  total: number;
-  page: number;
-  pageSize: number;
-}
-
-interface NaturalLanguageResponse {
-  recommendations: Recommendation[];
-  conversationalResponse: string;
-  followUpQuestions: string[];
-  processingTimeMs: number;
+// POST /api/v1/recommendations/action (Tier 3)
+interface ExecuteActionRequest {
+  action: AssistantAction;
+  conversationId?: string;
 }
 ```
 
-### WebSocket Events
+### Feature Detection Endpoint
 
 ```typescript
-// Real-time recommendation updates
-interface RecommendationEvents {
-  // Server -> Client
-  'recommendation:new': {
-    type: 'personalized' | 'trending';
-    recommendations: Recommendation[];
+// GET /api/v1/recommendations/features
+// Returns available features based on current tier
+interface FeaturesResponse {
+  tier: 1 | 2 | 3;
+  features: {
+    similarContent: boolean;
+    genreMatching: boolean;
+    actorDirectorMatching: boolean;
+    naturalLanguageSearch: boolean;
+    moodBasedDiscovery: boolean;
+    conversationalInterface: boolean;
+    actionableCommands: boolean;
+    proactiveSuggestions: boolean;
   };
-
-  'recommendation:stream': {
-    queryId: string;
-    chunk: string; // Streaming LLM response
-    done: boolean;
-  };
-
-  // Client -> Server
-  'recommendation:query': {
-    queryId: string;
-    query: string;
-    options?: QueryOptions;
-  };
-
-  'recommendation:feedback': {
-    mediaType: string;
-    mediaId: number;
-    feedbackType: string;
+  providers: {
+    embedding?: 'local' | 'ollama' | 'openai';
+    llm?: 'ollama' | 'openai' | 'anthropic';
   };
 }
-```
-
----
-
-## Privacy & Data Handling
-
-### Data Collection
-
-```typescript
-interface PrivacyConfig {
-  // What data is collected
-  collectWatchHistory: boolean;
-  collectBrowsingPatterns: boolean;
-  collectSearchHistory: boolean;
-  collectRatings: boolean;
-
-  // Processing location
-  localProcessingOnly: boolean; // Don't send data to external APIs
-  useLocalEmbeddings: boolean;
-  useLocalLLM: boolean;
-
-  // Data retention
-  historyRetentionDays: number;
-  searchRetentionDays: number;
-  feedbackRetentionDays: number;
-
-  // Anonymization
-  anonymizeBeforeExternalApi: boolean;
-  stripPersonalInfo: boolean;
-}
-
-class PrivacyManager {
-  async prepareDataForExternalApi(data: RecommendationContext): Promise<SanitizedContext> {
-    if (!this.config.anonymizeBeforeExternalApi) {
-      return data as SanitizedContext;
-    }
-
-    return {
-      // Remove user identifiers
-      userId: undefined,
-
-      // Keep only aggregate preferences
-      preferences: {
-        genres: data.userProfile?.favoriteGenres.map(g => g.value),
-        // Don't include specific watch history
-      },
-
-      // Sanitize query (remove any personal info)
-      query: this.sanitizeQuery(data.query),
-    };
-  }
-
-  private sanitizeQuery(query: string): string {
-    // Remove potential personal information patterns
-    return query
-      .replace(/\b(my|I|me|we)\b/gi, '') // Remove first-person references
-      .replace(/\b[A-Z][a-z]+ [A-Z][a-z]+\b/g, '') // Remove potential names
-      .trim();
-  }
-
-  async purgeUserData(userId: number): Promise<void> {
-    await Promise.all([
-      this.db.delete(userTasteEmbeddings).where(eq(userTasteEmbeddings.userId, userId)),
-      this.db.delete(recommendationFeedback).where(eq(recommendationFeedback.userId, userId)),
-      this.db.delete(userPreferences).where(eq(userPreferences.userId, userId)),
-      this.cache.delete(`taste:${userId}`),
-    ]);
-  }
-}
-```
-
-### Local-First Option
-
-```typescript
-// Configuration for fully local AI recommendations
-const localOnlyConfig: AIRecommendationConfig = {
-  enabled: true,
-  enableNaturalLanguageSearch: true,
-  enablePersonalizedRecommendations: true,
-
-  embedding: {
-    provider: 'ollama',
-    model: 'nomic-embed-text',
-    dimensions: 768,
-    batchSize: 32,
-    ollama: {
-      baseUrl: 'http://localhost:11434',
-      model: 'nomic-embed-text',
-    },
-  },
-
-  llm: {
-    provider: 'ollama',
-    model: 'llama3.1:8b',
-    temperature: 0.7,
-    maxTokens: 1024,
-    ollama: {
-      baseUrl: 'http://localhost:11434',
-      model: 'llama3.1:8b',
-    },
-  },
-
-  vectorStore: {
-    provider: 'pgvector',
-    pgvector: {
-      connectionString: process.env.DATABASE_URL!,
-      tableName: 'media_embeddings',
-      indexType: 'hnsw',
-    },
-  },
-
-  privacy: {
-    anonymizeUserData: false, // Not needed for local
-    localProcessingOnly: true,
-    dataRetentionDays: 365,
-  },
-};
 ```
 
 ---
@@ -1721,7 +1720,6 @@ const localOnlyConfig: AIRecommendationConfig = {
 ## Related Documents
 
 - [SEARCH_SPECIFICATION.md](./SEARCH_SPECIFICATION.md) - Release search system
-- [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md) - Data storage
-- [REST_API.md](./REST_API.md) - API endpoints
-- [SECURITY.md](./SECURITY.md) - API key and data protection
-- [DISCOVERY_REQUESTS.md](./DISCOVERY_REQUESTS.md) - Request/discovery features
+- [DATABASE_SCHEMA.md](../02-architecture/DATABASE_SCHEMA.md) - Data storage
+- [REST_API.md](../03-api/REST_API.md) - API endpoints
+- [SECURITY.md](../05-security/SECURITY.md) - API key and data protection
