@@ -22,6 +22,7 @@ const DEFAULT_PRESETS = [
 		trackFormat: "{Track Number:00} - {Track Title}",
 		// Options
 		replaceSpaces: false,
+		colonReplacement: "-",
 	},
 	{
 		name: "Kodi",
@@ -39,6 +40,7 @@ const DEFAULT_PRESETS = [
 		trackFormat: "{Track Number:00}. {Track Title}",
 		// Options
 		replaceSpaces: false,
+		colonReplacement: "-",
 	},
 	{
 		name: "Minimal",
@@ -56,6 +58,7 @@ const DEFAULT_PRESETS = [
 		trackFormat: "{Track Number:00} {Track Title}",
 		// Options
 		replaceSpaces: false,
+		colonReplacement: "-",
 	},
 	{
 		name: "Scene",
@@ -74,6 +77,7 @@ const DEFAULT_PRESETS = [
 		// Options
 		replaceSpaces: true,
 		spaceReplacement: ".",
+		colonReplacement: "-",
 	},
 ];
 
@@ -126,6 +130,7 @@ export const addCustomPreset = mutation({
 		trackFormat: v.string(),
 		replaceSpaces: v.boolean(),
 		spaceReplacement: v.optional(v.string()),
+		colonReplacement: v.optional(v.string()),
 	},
 	handler: async (ctx, args) => {
 		// Check for duplicate name
@@ -152,6 +157,7 @@ export const addCustomPreset = mutation({
 			trackFormat: args.trackFormat,
 			replaceSpaces: args.replaceSpaces,
 			spaceReplacement: args.spaceReplacement,
+			colonReplacement: args.colonReplacement,
 			createdAt: now,
 			updatedAt: now,
 		});
@@ -173,6 +179,7 @@ export const updatePreset = mutation({
 		trackFormat: v.optional(v.string()),
 		replaceSpaces: v.optional(v.boolean()),
 		spaceReplacement: v.optional(v.string()),
+		colonReplacement: v.optional(v.string()),
 	},
 	handler: async (ctx, args) => {
 		const preset = await ctx.db.get(args.id);
@@ -230,6 +237,7 @@ export const updatePreset = mutation({
 			"trackFormat",
 			"replaceSpaces",
 			"spaceReplacement",
+			"colonReplacement",
 		];
 
 		for (const field of fields) {
@@ -271,6 +279,7 @@ function replaceTokens(
 	tokens: Record<string, string | number | undefined>,
 	replaceSpaces: boolean | undefined,
 	spaceReplacement?: string,
+	colonReplacement?: string,
 ): string {
 	if (!format) return "";
 
@@ -292,6 +301,10 @@ function replaceTokens(
 		const simpleRegex = new RegExp(`\\{${key}\\}`, "g");
 		result = result.replace(simpleRegex, String(value));
 	}
+
+	// Replace colons with the specified replacement (default "-" for Windows compatibility)
+	const colonRepl = colonReplacement ?? "-";
+	result = result.replace(/:/g, colonRepl);
 
 	// Replace spaces if configured
 	if (replaceSpaces === true && spaceReplacement) {
@@ -374,18 +387,21 @@ export const formatFilename = query({
 					tokens,
 					preset.replaceSpaces,
 					preset.spaceReplacement,
+					preset.colonReplacement,
 				);
 				results.seasonFolder = replaceTokens(
 					preset.seasonFolderFormat,
 					tokens,
 					preset.replaceSpaces,
 					preset.spaceReplacement,
+					preset.colonReplacement,
 				);
 				results.filename = replaceTokens(
 					preset.episodeFormat,
 					tokens,
 					preset.replaceSpaces,
 					preset.spaceReplacement,
+					preset.colonReplacement,
 				);
 				break;
 
@@ -395,12 +411,14 @@ export const formatFilename = query({
 					tokens,
 					preset.replaceSpaces,
 					preset.spaceReplacement,
+					preset.colonReplacement,
 				);
 				results.filename = replaceTokens(
 					preset.movieFormat,
 					tokens,
 					preset.replaceSpaces,
 					preset.spaceReplacement,
+					preset.colonReplacement,
 				);
 				break;
 
@@ -410,18 +428,21 @@ export const formatFilename = query({
 					tokens,
 					preset.replaceSpaces,
 					preset.spaceReplacement,
+					preset.colonReplacement,
 				);
 				results.albumFolder = replaceTokens(
 					preset.albumFolderFormat,
 					tokens,
 					preset.replaceSpaces,
 					preset.spaceReplacement,
+					preset.colonReplacement,
 				);
 				results.filename = replaceTokens(
 					preset.trackFormat,
 					tokens,
 					preset.replaceSpaces,
 					preset.spaceReplacement,
+					preset.colonReplacement,
 				);
 				break;
 		}
@@ -481,6 +502,7 @@ export const previewRename = query({
 					tokens,
 					preset.replaceSpaces,
 					preset.spaceReplacement,
+					preset.colonReplacement,
 				);
 				if (args.season !== undefined) {
 					newPaths.seasonFolder = replaceTokens(
@@ -488,6 +510,7 @@ export const previewRename = query({
 						tokens,
 						preset.replaceSpaces,
 						preset.spaceReplacement,
+						preset.colonReplacement,
 					);
 				}
 				if (args.episode !== undefined) {
@@ -496,6 +519,7 @@ export const previewRename = query({
 						tokens,
 						preset.replaceSpaces,
 						preset.spaceReplacement,
+						preset.colonReplacement,
 					);
 				}
 				break;
@@ -506,12 +530,14 @@ export const previewRename = query({
 					tokens,
 					preset.replaceSpaces,
 					preset.spaceReplacement,
+					preset.colonReplacement,
 				);
 				newPaths.filename = replaceTokens(
 					preset.movieFormat,
 					tokens,
 					preset.replaceSpaces,
 					preset.spaceReplacement,
+					preset.colonReplacement,
 				);
 				break;
 
@@ -521,12 +547,14 @@ export const previewRename = query({
 					tokens,
 					preset.replaceSpaces,
 					preset.spaceReplacement,
+					preset.colonReplacement,
 				);
 				newPaths.albumFolder = replaceTokens(
 					preset.albumFolderFormat,
 					tokens,
 					preset.replaceSpaces,
 					preset.spaceReplacement,
+					preset.colonReplacement,
 				);
 				if (args.trackNumber !== undefined) {
 					newPaths.filename = replaceTokens(
@@ -534,6 +562,7 @@ export const previewRename = query({
 						tokens,
 						preset.replaceSpaces,
 						preset.spaceReplacement,
+						preset.colonReplacement,
 					);
 				}
 				break;
