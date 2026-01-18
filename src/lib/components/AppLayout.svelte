@@ -29,6 +29,7 @@ const navItems = [
 	{ href: "/music", label: "Music", icon: "music" },
 	{ href: "/calendar", label: "Calendar", icon: "calendar" },
 	{ href: "/activity", label: "Activity", icon: "activity" },
+	{ href: "/analytics", label: "Analytics", icon: "chart" },
 	{ href: "/queue", label: "Queue", icon: "download" },
 	{ href: "/requests", label: "Requests", icon: "inbox" },
 	{ href: "/settings", label: "Settings", icon: "settings" },
@@ -93,6 +94,8 @@ let sidebarCollapsed = $state(false);
 									<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M8 2v4"/><path d="M16 2v4"/><rect width="18" height="18" x="3" y="4" rx="2"/><path d="M3 10h18"/></svg>
 								{:else if item.icon === "activity"}
 									<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+								{:else if item.icon === "chart"}
+									<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="m19 9-5 5-4-4-3 3"/></svg>
 								{:else if item.icon === "download"}
 									<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
 								{:else if item.icon === "inbox"}
