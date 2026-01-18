@@ -269,8 +269,11 @@ export const toggleEnabled = mutation({
 // Test a webhook
 export const test = action({
 	args: { id: v.id("webhooks") },
-	handler: async (ctx, args) => {
-		const webhook = await ctx.runQuery(api.webhooks.get, { id: args.id });
+	handler: async (
+		ctx,
+		args,
+	): Promise<{ success: boolean; statusCode?: number; statusText?: string; error?: string }> => {
+		const webhook: Doc<"webhooks"> | null = await ctx.runQuery(api.webhooks.get, { id: args.id });
 		if (!webhook) {
 			throw new Error("Webhook not found");
 		}
@@ -297,7 +300,7 @@ export const test = action({
 				}
 			}
 
-			const response = await fetch(webhook.url, {
+			const response: Response = await fetch(webhook.url, {
 				method: "POST",
 				headers,
 				body: JSON.stringify(testPayload),
