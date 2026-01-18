@@ -1,7 +1,10 @@
 <script lang="ts">
-import { useQuery } from "convex-svelte";
+import { useConvexClient, useQuery } from "convex-svelte";
 import { Button } from "$lib/components/ui/button";
 import { api } from "../../convex/_generated/api";
+
+const client = useConvexClient();
+let isExporting = $state(false);
 
 // Current view date
 let viewDate = $state(new Date());
@@ -104,6 +107,33 @@ function getMediaTypeColor(type: string): string {
 			return "bg-gray-500";
 	}
 }
+
+async function exportIcal() {
+	isExporting = true;
+	try {
+		const icalContent = await client.action(api.calendar.generateIcal, {
+			daysAhead: 90,
+			daysBehind: 14,
+			includeUnmonitored: false,
+		});
+
+		// Create and download the file
+		const blob = new Blob([icalContent], { type: "text/calendar;charset=utf-8" });
+		const url = URL.createObjectURL(blob);
+		const link = document.createElement("a");
+		link.href = url;
+		link.download = "idkarr-calendar.ics";
+		document.body.appendChild(link);
+		link.click();
+		document.body.removeChild(link);
+		URL.revokeObjectURL(url);
+	} catch (error) {
+		console.error("Failed to export calendar:", error);
+		alert("Failed to export calendar");
+	} finally {
+		isExporting = false;
+	}
+}
 </script>
 
 <svelte:head>
@@ -117,6 +147,14 @@ function getMediaTypeColor(type: string): string {
 			<h1 class="text-3xl font-bold">Calendar</h1>
 			<p class="text-muted-foreground">Upcoming releases and air dates</p>
 		</div>
+		<Button variant="outline" onclick={exportIcal} disabled={isExporting}>
+			<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="mr-2">
+				<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+				<polyline points="7 10 12 15 17 10" />
+				<line x1="12" x2="12" y1="15" y2="3" />
+			</svg>
+			{isExporting ? "Exporting..." : "Export iCal"}
+		</Button>
 	</div>
 
 	<!-- Calendar Navigation -->
