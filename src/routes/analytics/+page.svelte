@@ -18,7 +18,7 @@ const musicArtists = useQuery(api.music.listArtists, {});
 const movieStatusBreakdown = $derived(() => {
 	if (!movies.data) return { monitored: 0, unmonitored: 0, byStatus: {} as Record<string, number> };
 
-	const monitored = movies.data.filter((m) => m.monitored).length;
+	const monitored = movies.data.filter((m: { monitored: boolean }) => m.monitored).length;
 	const unmonitored = movies.data.length - monitored;
 	const byStatus: Record<string, number> = {};
 
@@ -34,7 +34,7 @@ const movieStatusBreakdown = $derived(() => {
 const seriesStatusBreakdown = $derived(() => {
 	if (!series.data) return { monitored: 0, unmonitored: 0, byStatus: {} as Record<string, number> };
 
-	const monitored = series.data.filter((s) => s.monitored).length;
+	const monitored = series.data.filter((s: { monitored: boolean }) => s.monitored).length;
 	const unmonitored = series.data.length - monitored;
 	const byStatus: Record<string, number> = {};
 
@@ -51,7 +51,7 @@ const musicStatusBreakdown = $derived(() => {
 	if (!musicArtists.data)
 		return { monitored: 0, unmonitored: 0, byStatus: {} as Record<string, number> };
 
-	const monitored = musicArtists.data.filter((a) => a.monitored).length;
+	const monitored = musicArtists.data.filter((a: { monitored: boolean }) => a.monitored).length;
 	const unmonitored = musicArtists.data.length - monitored;
 	const byStatus: Record<string, number> = {};
 
@@ -69,13 +69,19 @@ const recentlyAddedCount = $derived(() => {
 	let count = 0;
 
 	if (movies.data) {
-		count += movies.data.filter((m) => m.added && m.added >= sevenDaysAgo).length;
+		count += movies.data.filter(
+			(m: { added?: number }) => m.added && m.added >= sevenDaysAgo,
+		).length;
 	}
 	if (series.data) {
-		count += series.data.filter((s) => s.added && s.added >= sevenDaysAgo).length;
+		count += series.data.filter(
+			(s: { added?: number }) => s.added && s.added >= sevenDaysAgo,
+		).length;
 	}
 	if (musicArtists.data) {
-		count += musicArtists.data.filter((a) => a.added && a.added >= sevenDaysAgo).length;
+		count += musicArtists.data.filter(
+			(a: { added?: number }) => a.added && a.added >= sevenDaysAgo,
+		).length;
 	}
 
 	return count;
@@ -497,7 +503,7 @@ function calculatePercentage(part: number, total: number): number {
 								<div>
 									<p class="font-medium">{profile.name}</p>
 									<p class="text-sm text-muted-foreground">
-										{profile.items.filter((i) => i.enabled).length} qualities enabled
+										{profile.items.filter((i: { enabled: boolean }) => i.enabled).length} qualities enabled
 									</p>
 								</div>
 								<span
