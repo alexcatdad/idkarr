@@ -10,6 +10,7 @@
 
 import type * as activityLog from "../activityLog.js";
 import type * as calendar from "../calendar.js";
+import type * as collections from "../collections.js";
 import type * as crons from "../crons.js";
 import type * as customFormats from "../customFormats.js";
 import type * as downloadClients from "../downloadClients.js";
@@ -45,6 +46,7 @@ import type {
 declare const fullApi: ApiFromModules<{
   activityLog: typeof activityLog;
   calendar: typeof calendar;
+  collections: typeof collections;
   crons: typeof crons;
   customFormats: typeof customFormats;
   downloadClients: typeof downloadClients;
