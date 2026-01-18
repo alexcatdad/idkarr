@@ -13,7 +13,7 @@ export const searchMovies = action({
 	handler: async (_ctx, args) => {
 		const apiKey = process.env.TMDB_API_KEY;
 		if (!apiKey) {
-			throw new Error("TMDB_API_KEY environment variable not set");
+			return { results: [], totalPages: 0, totalResults: 0, notConfigured: true };
 		}
 
 		const page = args.page ?? 1;
@@ -60,7 +60,7 @@ export const getMovieDetails = action({
 	handler: async (_ctx, args) => {
 		const apiKey = process.env.TMDB_API_KEY;
 		if (!apiKey) {
-			throw new Error("TMDB_API_KEY environment variable not set");
+			return null;
 		}
 
 		const url = `${TMDB_API_BASE}/movie/${args.tmdbId}?api_key=${apiKey}&append_to_response=credits,external_ids,release_dates`;
@@ -124,7 +124,7 @@ export const searchTV = action({
 	handler: async (_ctx, args) => {
 		const apiKey = process.env.TMDB_API_KEY;
 		if (!apiKey) {
-			throw new Error("TMDB_API_KEY environment variable not set");
+			return { results: [], totalPages: 0, totalResults: 0, notConfigured: true };
 		}
 
 		const page = args.page ?? 1;
@@ -168,7 +168,7 @@ export const getTVDetails = action({
 	handler: async (_ctx, args) => {
 		const apiKey = process.env.TMDB_API_KEY;
 		if (!apiKey) {
-			throw new Error("TMDB_API_KEY environment variable not set");
+			return null;
 		}
 
 		const url = `${TMDB_API_BASE}/tv/${args.tmdbId}?api_key=${apiKey}&append_to_response=external_ids,content_ratings`;
