@@ -2,6 +2,7 @@
 import { setupConvex } from "convex-svelte";
 import { PUBLIC_CONVEX_URL } from "$env/static/public";
 import favicon from "$lib/assets/favicon.svg";
+import AppLayout from "$lib/components/AppLayout.svelte";
 import "../app.css";
 
 const { children } = $props();
@@ -13,4 +14,6 @@ setupConvex(PUBLIC_CONVEX_URL);
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
-{@render children()}
+<AppLayout>
+	{@render children()}
+</AppLayout>

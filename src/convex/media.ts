@@ -1,12 +1,11 @@
 import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
+import { mediaStatusValidator, mediaTypeValidator } from "./schema";
 
 // List all media with optional filtering
 export const list = query({
 	args: {
-		mediaType: v.optional(
-			v.union(v.literal("tv"), v.literal("movie"), v.literal("anime"), v.literal("music")),
-		),
+		mediaType: v.optional(mediaTypeValidator),
 	},
 	handler: async (ctx, args) => {
 		const { mediaType } = args;
@@ -31,10 +30,11 @@ export const get = query({
 // Add new media
 export const add = mutation({
 	args: {
-		mediaType: v.union(v.literal("tv"), v.literal("movie"), v.literal("anime"), v.literal("music")),
+		mediaType: mediaTypeValidator,
 		title: v.string(),
 		year: v.optional(v.number()),
 		overview: v.optional(v.string()),
+		status: v.optional(mediaStatusValidator),
 		tmdbId: v.optional(v.number()),
 		tvdbId: v.optional(v.number()),
 	},
@@ -46,7 +46,7 @@ export const add = mutation({
 			sortTitle: args.title.toLowerCase().replace(/^(the|a|an)\s+/i, ""),
 			year: args.year,
 			overview: args.overview,
-			status: "active",
+			status: args.status ?? "unknown",
 			monitored: true,
 			tmdbId: args.tmdbId,
 			tvdbId: args.tvdbId,
