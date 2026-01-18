@@ -4,6 +4,7 @@ import AddDownloadClientModal from "$lib/components/settings/AddDownloadClientMo
 import AddIndexerModal from "$lib/components/settings/AddIndexerModal.svelte";
 import AddRootFolderModal from "$lib/components/settings/AddRootFolderModal.svelte";
 import AddTagModal from "$lib/components/settings/AddTagModal.svelte";
+import AddWebhookModal from "$lib/components/settings/AddWebhookModal.svelte";
 import { Button } from "$lib/components/ui/button";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
@@ -12,6 +13,7 @@ let showAddRootFolderModal = $state(false);
 let showAddDownloadClientModal = $state(false);
 let showAddIndexerModal = $state(false);
 let showAddTagModal = $state(false);
+let showAddWebhookModal = $state(false);
 
 const client = useConvexClient();
 
@@ -46,6 +48,15 @@ async function deleteTag(id: Id<"tags">) {
 	if (!confirm("Delete this tag?")) return;
 	try {
 		await client.mutation(api.tags.remove, { id });
+	} catch (e) {
+		alert(e instanceof Error ? e.message : "Failed to delete");
+	}
+}
+
+async function deleteWebhook(id: Id<"webhooks">) {
+	if (!confirm("Delete this webhook?")) return;
+	try {
+		await client.mutation(api.webhooks.remove, { id });
 	} catch (e) {
 		alert(e instanceof Error ? e.message : "Failed to delete");
 	}
@@ -689,7 +700,7 @@ const sections = [
 						<h2 class="text-2xl font-bold">Notifications</h2>
 						<p class="text-muted-foreground">Configure webhooks for event notifications</p>
 					</div>
-					<Button>Add Webhook</Button>
+					<Button onclick={() => (showAddWebhookModal = true)}>Add Webhook</Button>
 				</div>
 
 				{#if webhooksQuery.isLoading}
@@ -701,7 +712,7 @@ const sections = [
 				{:else if !webhooksQuery.data || webhooksQuery.data.length === 0}
 					<div class="rounded-lg border bg-card p-8 text-center">
 						<p class="text-muted-foreground">No webhooks configured</p>
-						<Button class="mt-4">Add Webhook</Button>
+						<Button class="mt-4" onclick={() => (showAddWebhookModal = true)}>Add Webhook</Button>
 					</div>
 				{:else}
 					<div class="space-y-3">
@@ -748,6 +759,22 @@ const sections = [
 												/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z" /></svg
 											>
 										</Button>
+										<Button variant="ghost" size="icon" onclick={() => deleteWebhook(webhook._id)}>
+											<svg
+												xmlns="http://www.w3.org/2000/svg"
+												width="16"
+												height="16"
+												viewBox="0 0 24 24"
+												fill="none"
+												stroke="currentColor"
+												stroke-width="2"
+												stroke-linecap="round"
+												stroke-linejoin="round"
+												><path d="M3 6h18" /><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6" /><path
+													d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"
+												/></svg
+											>
+										</Button>
 									</div>
 								</div>
 							</div>
@@ -762,4 +789,5 @@ const sections = [
 	<AddDownloadClientModal bind:open={showAddDownloadClientModal} onClose={() => (showAddDownloadClientModal = false)} />
 	<AddIndexerModal bind:open={showAddIndexerModal} onClose={() => (showAddIndexerModal = false)} />
 	<AddTagModal bind:open={showAddTagModal} onClose={() => (showAddTagModal = false)} />
+	<AddWebhookModal bind:open={showAddWebhookModal} onClose={() => (showAddWebhookModal = false)} />
 </div>
