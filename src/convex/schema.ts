@@ -330,6 +330,22 @@ export default defineSchema({
 		.index("by_mediaType", ["mediaType"]),
 
 	// -------------------------------------------------------------------------
+	// Collections - movie collections (e.g., Marvel Cinematic Universe, Harry Potter)
+	// -------------------------------------------------------------------------
+	collections: defineTable({
+		name: v.string(),
+		tmdbId: v.number(),
+		overview: v.optional(v.string()),
+		posterPath: v.optional(v.string()),
+		backdropPath: v.optional(v.string()),
+		// Timestamps
+		createdAt: v.number(),
+		updatedAt: v.number(),
+	})
+		.index("by_tmdb_id", ["tmdbId"])
+		.index("by_name", ["name"]),
+
+	// -------------------------------------------------------------------------
 	// Media table - unified for all media types
 	// -------------------------------------------------------------------------
 	media: defineTable({
@@ -346,6 +362,8 @@ export default defineSchema({
 		rootFolderId: v.optional(v.id("rootFolders")),
 		// Tags for routing
 		tagIds: v.optional(v.array(v.id("tags"))),
+		// Collection reference (for movies)
+		collectionId: v.optional(v.id("collections")),
 		// External IDs
 		tmdbId: v.optional(v.number()),
 		tvdbId: v.optional(v.number()),
@@ -358,7 +376,8 @@ export default defineSchema({
 		.index("by_title", ["sortTitle"])
 		.index("by_tmdb", ["tmdbId"])
 		.index("by_tvdb", ["tvdbId"])
-		.index("by_qualityProfile", ["qualityProfileId"]),
+		.index("by_qualityProfile", ["qualityProfileId"])
+		.index("by_collection", ["collectionId"]),
 
 	// -------------------------------------------------------------------------
 	// Seasons - for TV series and anime
