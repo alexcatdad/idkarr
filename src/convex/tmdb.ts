@@ -221,3 +221,171 @@ function mapTVStatus(status: string): "continuing" | "ended" | "upcoming" | "unk
 			return "unknown";
 	}
 }
+
+// Get trending movies from TMDB (weekly)
+export const getTrendingMovies = action({
+	args: {
+		page: v.optional(v.number()),
+	},
+	handler: async (_ctx, args) => {
+		const apiKey = process.env.TMDB_API_KEY || TMDB_DEFAULT_KEY;
+
+		const page = args.page ?? 1;
+		const url = `${TMDB_API_BASE}/trending/movie/week?api_key=${apiKey}&page=${page}`;
+
+		const response = await fetch(url);
+		if (!response.ok) {
+			throw new Error(`TMDB API error: ${response.status}`);
+		}
+
+		const data = await response.json();
+
+		return {
+			page: data.page,
+			totalPages: data.total_pages,
+			totalResults: data.total_results,
+			// biome-ignore lint/suspicious/noExplicitAny: TMDB API response type
+			results: data.results.map((movie: any) => ({
+				tmdbId: movie.id,
+				title: movie.title,
+				originalTitle: movie.original_title,
+				overview: movie.overview,
+				releaseDate: movie.release_date,
+				year: movie.release_date ? Number.parseInt(movie.release_date.split("-")[0], 10) : null,
+				posterPath: movie.poster_path
+					? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
+					: null,
+				backdropPath: movie.backdrop_path
+					? `https://image.tmdb.org/t/p/original${movie.backdrop_path}`
+					: null,
+				voteAverage: movie.vote_average,
+				popularity: movie.popularity,
+			})),
+		};
+	},
+});
+
+// Get trending TV shows from TMDB (weekly)
+export const getTrendingTV = action({
+	args: {
+		page: v.optional(v.number()),
+	},
+	handler: async (_ctx, args) => {
+		const apiKey = process.env.TMDB_API_KEY || TMDB_DEFAULT_KEY;
+
+		const page = args.page ?? 1;
+		const url = `${TMDB_API_BASE}/trending/tv/week?api_key=${apiKey}&page=${page}`;
+
+		const response = await fetch(url);
+		if (!response.ok) {
+			throw new Error(`TMDB API error: ${response.status}`);
+		}
+
+		const data = await response.json();
+
+		return {
+			page: data.page,
+			totalPages: data.total_pages,
+			totalResults: data.total_results,
+			// biome-ignore lint/suspicious/noExplicitAny: TMDB API response type
+			results: data.results.map((show: any) => ({
+				tmdbId: show.id,
+				title: show.name,
+				originalTitle: show.original_name,
+				overview: show.overview,
+				firstAirDate: show.first_air_date,
+				year: show.first_air_date ? Number.parseInt(show.first_air_date.split("-")[0], 10) : null,
+				posterPath: show.poster_path ? `https://image.tmdb.org/t/p/w500${show.poster_path}` : null,
+				backdropPath: show.backdrop_path
+					? `https://image.tmdb.org/t/p/original${show.backdrop_path}`
+					: null,
+				voteAverage: show.vote_average,
+				popularity: show.popularity,
+			})),
+		};
+	},
+});
+
+// Get popular movies from TMDB
+export const getPopularMovies = action({
+	args: {
+		page: v.optional(v.number()),
+	},
+	handler: async (_ctx, args) => {
+		const apiKey = process.env.TMDB_API_KEY || TMDB_DEFAULT_KEY;
+
+		const page = args.page ?? 1;
+		const url = `${TMDB_API_BASE}/movie/popular?api_key=${apiKey}&page=${page}`;
+
+		const response = await fetch(url);
+		if (!response.ok) {
+			throw new Error(`TMDB API error: ${response.status}`);
+		}
+
+		const data = await response.json();
+
+		return {
+			page: data.page,
+			totalPages: data.total_pages,
+			totalResults: data.total_results,
+			// biome-ignore lint/suspicious/noExplicitAny: TMDB API response type
+			results: data.results.map((movie: any) => ({
+				tmdbId: movie.id,
+				title: movie.title,
+				originalTitle: movie.original_title,
+				overview: movie.overview,
+				releaseDate: movie.release_date,
+				year: movie.release_date ? Number.parseInt(movie.release_date.split("-")[0], 10) : null,
+				posterPath: movie.poster_path
+					? `https://image.tmdb.org/t/p/w500${movie.poster_path}`
+					: null,
+				backdropPath: movie.backdrop_path
+					? `https://image.tmdb.org/t/p/original${movie.backdrop_path}`
+					: null,
+				voteAverage: movie.vote_average,
+				popularity: movie.popularity,
+			})),
+		};
+	},
+});
+
+// Get popular TV shows from TMDB
+export const getPopularTV = action({
+	args: {
+		page: v.optional(v.number()),
+	},
+	handler: async (_ctx, args) => {
+		const apiKey = process.env.TMDB_API_KEY || TMDB_DEFAULT_KEY;
+
+		const page = args.page ?? 1;
+		const url = `${TMDB_API_BASE}/tv/popular?api_key=${apiKey}&page=${page}`;
+
+		const response = await fetch(url);
+		if (!response.ok) {
+			throw new Error(`TMDB API error: ${response.status}`);
+		}
+
+		const data = await response.json();
+
+		return {
+			page: data.page,
+			totalPages: data.total_pages,
+			totalResults: data.total_results,
+			// biome-ignore lint/suspicious/noExplicitAny: TMDB API response type
+			results: data.results.map((show: any) => ({
+				tmdbId: show.id,
+				title: show.name,
+				originalTitle: show.original_name,
+				overview: show.overview,
+				firstAirDate: show.first_air_date,
+				year: show.first_air_date ? Number.parseInt(show.first_air_date.split("-")[0], 10) : null,
+				posterPath: show.poster_path ? `https://image.tmdb.org/t/p/w500${show.poster_path}` : null,
+				backdropPath: show.backdrop_path
+					? `https://image.tmdb.org/t/p/original${show.backdrop_path}`
+					: null,
+				voteAverage: show.vote_average,
+				popularity: show.popularity,
+			})),
+		};
+	},
+});
