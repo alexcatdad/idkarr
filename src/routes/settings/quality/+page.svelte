@@ -389,7 +389,7 @@ function formatDate(timestamp: number | undefined): string {
 									{/if}
 								</div>
 								<p class="text-sm text-muted-foreground mt-1">
-									{profile.items.filter((i) => i.enabled).length} of {profile.items.length} qualities enabled
+									{profile.items.filter((i: { enabled: boolean }) => i.enabled).length} of {profile.items.length} qualities enabled
 								</p>
 							</div>
 							<div class="flex items-center gap-1">
