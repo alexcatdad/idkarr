@@ -1,6 +1,7 @@
 <script lang="ts">
 import { useConvexClient, useQuery } from "convex-svelte";
 import AddDownloadClientModal from "$lib/components/settings/AddDownloadClientModal.svelte";
+import AddIndexerModal from "$lib/components/settings/AddIndexerModal.svelte";
 import AddRootFolderModal from "$lib/components/settings/AddRootFolderModal.svelte";
 import { Button } from "$lib/components/ui/button";
 import { api } from "../../convex/_generated/api";
@@ -8,6 +9,7 @@ import type { Id } from "../../convex/_generated/dataModel";
 
 let showAddRootFolderModal = $state(false);
 let showAddDownloadClientModal = $state(false);
+let showAddIndexerModal = $state(false);
 
 const client = useConvexClient();
 
@@ -362,7 +364,7 @@ const sections = [
 						<h2 class="text-2xl font-bold">Indexers</h2>
 						<p class="text-muted-foreground">Configure Torznab and Newznab indexers</p>
 					</div>
-					<Button>Add Indexer</Button>
+					<Button onclick={() => (showAddIndexerModal = true)}>Add Indexer</Button>
 				</div>
 
 				{#if indexersQuery.isLoading}
@@ -374,7 +376,7 @@ const sections = [
 				{:else if !indexersQuery.data || indexersQuery.data.length === 0}
 					<div class="rounded-lg border bg-card p-8 text-center">
 						<p class="text-muted-foreground">No indexers configured</p>
-						<Button class="mt-4">Add Indexer</Button>
+						<Button class="mt-4" onclick={() => (showAddIndexerModal = true)}>Add Indexer</Button>
 					</div>
 				{:else}
 					<div class="space-y-3">
@@ -715,4 +717,5 @@ const sections = [
 
 	<AddRootFolderModal bind:open={showAddRootFolderModal} onClose={() => (showAddRootFolderModal = false)} />
 	<AddDownloadClientModal bind:open={showAddDownloadClientModal} onClose={() => (showAddDownloadClientModal = false)} />
+	<AddIndexerModal bind:open={showAddIndexerModal} onClose={() => (showAddIndexerModal = false)} />
 </div>
