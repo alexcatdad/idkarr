@@ -1,11 +1,13 @@
 <script lang="ts">
 import { useConvexClient, useQuery } from "convex-svelte";
+import AddDownloadClientModal from "$lib/components/settings/AddDownloadClientModal.svelte";
 import AddRootFolderModal from "$lib/components/settings/AddRootFolderModal.svelte";
 import { Button } from "$lib/components/ui/button";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
 
 let showAddRootFolderModal = $state(false);
+let showAddDownloadClientModal = $state(false);
 
 const client = useConvexClient();
 
@@ -245,7 +247,7 @@ const sections = [
 						<h2 class="text-2xl font-bold">Download Clients</h2>
 						<p class="text-muted-foreground">Configure torrent and usenet clients</p>
 					</div>
-					<Button>Add Client</Button>
+					<Button onclick={() => (showAddDownloadClientModal = true)}>Add Client</Button>
 				</div>
 
 				{#if downloadClientsQuery.isLoading}
@@ -257,7 +259,7 @@ const sections = [
 				{:else if !downloadClientsQuery.data || downloadClientsQuery.data.length === 0}
 					<div class="rounded-lg border bg-card p-8 text-center">
 						<p class="text-muted-foreground">No download clients configured</p>
-						<Button class="mt-4">Add Download Client</Button>
+						<Button class="mt-4" onclick={() => (showAddDownloadClientModal = true)}>Add Download Client</Button>
 					</div>
 				{:else}
 					<div class="space-y-3">
@@ -687,4 +689,5 @@ const sections = [
 	</div>
 
 	<AddRootFolderModal bind:open={showAddRootFolderModal} onClose={() => (showAddRootFolderModal = false)} />
+	<AddDownloadClientModal bind:open={showAddDownloadClientModal} onClose={() => (showAddDownloadClientModal = false)} />
 </div>
