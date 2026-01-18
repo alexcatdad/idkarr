@@ -253,7 +253,8 @@ function getStatusColor(status?: string): string {
 									</h3>
 									<div class="grid gap-3 sm:grid-cols-2">
 										{#each albums as album}
-											<div
+											<a
+												href="/music/album/{album._id}"
 												class="flex gap-3 p-3 rounded-lg border hover:border-primary transition-colors"
 											>
 												<!-- Album Cover -->
@@ -310,7 +311,7 @@ function getStatusColor(status?: string): string {
 														</div>
 													{/if}
 												</div>
-											</div>
+											</a>
 										{/each}
 									</div>
 								</div>
