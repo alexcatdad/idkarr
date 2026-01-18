@@ -3,6 +3,7 @@ import { useConvexClient, useQuery } from "convex-svelte";
 import AddDownloadClientModal from "$lib/components/settings/AddDownloadClientModal.svelte";
 import AddIndexerModal from "$lib/components/settings/AddIndexerModal.svelte";
 import AddRootFolderModal from "$lib/components/settings/AddRootFolderModal.svelte";
+import AddTagModal from "$lib/components/settings/AddTagModal.svelte";
 import { Button } from "$lib/components/ui/button";
 import { api } from "../../convex/_generated/api";
 import type { Id } from "../../convex/_generated/dataModel";
@@ -10,6 +11,7 @@ import type { Id } from "../../convex/_generated/dataModel";
 let showAddRootFolderModal = $state(false);
 let showAddDownloadClientModal = $state(false);
 let showAddIndexerModal = $state(false);
+let showAddTagModal = $state(false);
 
 const client = useConvexClient();
 
@@ -35,6 +37,15 @@ async function deleteIndexer(id: Id<"indexers">) {
 	if (!confirm("Delete this indexer?")) return;
 	try {
 		await client.mutation(api.indexers.remove, { id });
+	} catch (e) {
+		alert(e instanceof Error ? e.message : "Failed to delete");
+	}
+}
+
+async function deleteTag(id: Id<"tags">) {
+	if (!confirm("Delete this tag?")) return;
+	try {
+		await client.mutation(api.tags.remove, { id });
 	} catch (e) {
 		alert(e instanceof Error ? e.message : "Failed to delete");
 	}
@@ -622,7 +633,7 @@ const sections = [
 						<h2 class="text-2xl font-bold">Tags</h2>
 						<p class="text-muted-foreground">Create tags to organize and route media</p>
 					</div>
-					<Button>Add Tag</Button>
+					<Button onclick={() => (showAddTagModal = true)}>Add Tag</Button>
 				</div>
 
 				{#if tagsQuery.isLoading}
@@ -634,29 +645,36 @@ const sections = [
 				{:else if !tagsQuery.data || tagsQuery.data.length === 0}
 					<div class="rounded-lg border bg-card p-8 text-center">
 						<p class="text-muted-foreground">No tags created</p>
-						<Button class="mt-4">Create Tag</Button>
+						<Button class="mt-4" onclick={() => (showAddTagModal = true)}>Create Tag</Button>
 					</div>
 				{:else}
 					<div class="flex flex-wrap gap-2">
 						{#each tagsQuery.data as tag}
-							<button
+							<div
 								class="px-4 py-2 rounded-full border bg-card hover:bg-muted transition-colors flex items-center gap-2"
 							>
 								<span class="font-medium">{tag.name}</span>
-								<svg
-									xmlns="http://www.w3.org/2000/svg"
-									width="14"
-									height="14"
-									viewBox="0 0 24 24"
-									fill="none"
-									stroke="currentColor"
-									stroke-width="2"
-									stroke-linecap="round"
-									stroke-linejoin="round"
-									class="text-muted-foreground"
-									><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg
+								<button
+									type="button"
+									onclick={() => deleteTag(tag._id)}
+									class="hover:text-red-500 transition-colors"
+									aria-label="Delete tag"
 								>
-							</button>
+									<svg
+										xmlns="http://www.w3.org/2000/svg"
+										width="14"
+										height="14"
+										viewBox="0 0 24 24"
+										fill="none"
+										stroke="currentColor"
+										stroke-width="2"
+										stroke-linecap="round"
+										stroke-linejoin="round"
+										class="text-muted-foreground hover:text-red-500"
+										><path d="M18 6 6 18" /><path d="m6 6 12 12" /></svg
+									>
+								</button>
+							</div>
 						{/each}
 					</div>
 				{/if}
@@ -743,4 +761,5 @@ const sections = [
 	<AddRootFolderModal bind:open={showAddRootFolderModal} onClose={() => (showAddRootFolderModal = false)} />
 	<AddDownloadClientModal bind:open={showAddDownloadClientModal} onClose={() => (showAddDownloadClientModal = false)} />
 	<AddIndexerModal bind:open={showAddIndexerModal} onClose={() => (showAddIndexerModal = false)} />
+	<AddTagModal bind:open={showAddTagModal} onClose={() => (showAddTagModal = false)} />
 </div>
