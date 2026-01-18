@@ -112,6 +112,11 @@ const tokensQuery = useQuery(api.naming.getAvailableTokens, {});
 
 // Active tab state
 let activeTab: "preview" | "tokens" = $state("preview");
+
+// Check if any preview has an error
+const hasError = $derived(
+	tvPreview?.error || animePreview?.error || moviePreview?.error || musicPreview?.error,
+);
 </script>
 
 <div class="rounded-lg border bg-card {className}">
@@ -139,6 +144,18 @@ let activeTab: "preview" | "tokens" = $state("preview");
 		{#if activeTab === "preview"}
 			{#if !presetId}
 				<p class="text-muted-foreground text-sm">Select a naming preset to see preview.</p>
+			{:else if hasError}
+				<div class="rounded-md bg-destructive/10 p-4 text-sm">
+					<div class="flex items-center gap-2 text-destructive">
+						<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+							<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-5a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5A.75.75 0 0110 5zm0 10a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+						</svg>
+						<span class="font-medium">Failed to generate preview</span>
+					</div>
+					<p class="mt-2 text-destructive/80">
+						The selected naming preset may be invalid or unavailable. Please try selecting a different preset.
+					</p>
+				</div>
 			{:else}
 				<div class="space-y-6">
 					<!-- TV Series Preview -->
@@ -150,7 +167,21 @@ let activeTab: "preview" | "tokens" = $state("preview");
 							TV Series
 						</h4>
 						{#if tvPreview?.isLoading}
-							<div class="text-sm text-muted-foreground">Loading...</div>
+							<!-- Skeleton loading state -->
+							<div class="bg-muted/50 rounded p-3 space-y-2 animate-pulse">
+								<div class="flex items-center gap-2">
+									<div class="h-3 w-12 bg-muted rounded"></div>
+									<div class="h-4 w-48 bg-muted rounded"></div>
+								</div>
+								<div class="flex items-center gap-2 pl-4">
+									<div class="h-3 w-12 bg-muted rounded"></div>
+									<div class="h-4 w-24 bg-muted rounded"></div>
+								</div>
+								<div class="flex items-center gap-2 pl-8">
+									<div class="h-3 w-8 bg-muted rounded"></div>
+									<div class="h-4 w-64 bg-muted rounded"></div>
+								</div>
+							</div>
 						{:else if tvPreview?.data}
 							<div class="bg-muted/50 rounded p-3 font-mono text-sm space-y-1">
 								<div class="text-muted-foreground">
@@ -180,7 +211,21 @@ let activeTab: "preview" | "tokens" = $state("preview");
 							Anime
 						</h4>
 						{#if animePreview?.isLoading}
-							<div class="text-sm text-muted-foreground">Loading...</div>
+							<!-- Skeleton loading state -->
+							<div class="bg-muted/50 rounded p-3 space-y-2 animate-pulse">
+								<div class="flex items-center gap-2">
+									<div class="h-3 w-12 bg-muted rounded"></div>
+									<div class="h-4 w-44 bg-muted rounded"></div>
+								</div>
+								<div class="flex items-center gap-2 pl-4">
+									<div class="h-3 w-12 bg-muted rounded"></div>
+									<div class="h-4 w-24 bg-muted rounded"></div>
+								</div>
+								<div class="flex items-center gap-2 pl-8">
+									<div class="h-3 w-8 bg-muted rounded"></div>
+									<div class="h-4 w-72 bg-muted rounded"></div>
+								</div>
+							</div>
 						{:else if animePreview?.data}
 							<div class="bg-muted/50 rounded p-3 font-mono text-sm space-y-1">
 								<div class="text-muted-foreground">
@@ -210,7 +255,17 @@ let activeTab: "preview" | "tokens" = $state("preview");
 							Movie
 						</h4>
 						{#if moviePreview?.isLoading}
-							<div class="text-sm text-muted-foreground">Loading...</div>
+							<!-- Skeleton loading state -->
+							<div class="bg-muted/50 rounded p-3 space-y-2 animate-pulse">
+								<div class="flex items-center gap-2">
+									<div class="h-3 w-12 bg-muted rounded"></div>
+									<div class="h-4 w-36 bg-muted rounded"></div>
+								</div>
+								<div class="flex items-center gap-2 pl-4">
+									<div class="h-3 w-8 bg-muted rounded"></div>
+									<div class="h-4 w-40 bg-muted rounded"></div>
+								</div>
+							</div>
 						{:else if moviePreview?.data}
 							<div class="bg-muted/50 rounded p-3 font-mono text-sm space-y-1">
 								<div class="text-muted-foreground">
@@ -229,12 +284,26 @@ let activeTab: "preview" | "tokens" = $state("preview");
 					<div>
 						<h4 class="text-sm font-medium mb-2 flex items-center gap-2">
 							<span class="inline-flex items-center justify-center w-5 h-5 rounded bg-green-500/20 text-green-600 dark:text-green-400 text-xs">
-								♪
+								M
 							</span>
 							Music
 						</h4>
 						{#if musicPreview?.isLoading}
-							<div class="text-sm text-muted-foreground">Loading...</div>
+							<!-- Skeleton loading state -->
+							<div class="bg-muted/50 rounded p-3 space-y-2 animate-pulse">
+								<div class="flex items-center gap-2">
+									<div class="h-3 w-12 bg-muted rounded"></div>
+									<div class="h-4 w-28 bg-muted rounded"></div>
+								</div>
+								<div class="flex items-center gap-2 pl-4">
+									<div class="h-3 w-12 bg-muted rounded"></div>
+									<div class="h-4 w-52 bg-muted rounded"></div>
+								</div>
+								<div class="flex items-center gap-2 pl-8">
+									<div class="h-3 w-8 bg-muted rounded"></div>
+									<div class="h-4 w-32 bg-muted rounded"></div>
+								</div>
+							</div>
 						{:else if musicPreview?.data}
 							<div class="bg-muted/50 rounded p-3 font-mono text-sm space-y-1">
 								<div class="text-muted-foreground">
@@ -257,7 +326,31 @@ let activeTab: "preview" | "tokens" = $state("preview");
 		{:else if activeTab === "tokens"}
 			<!-- Token Reference -->
 			{#if tokensQuery.isLoading}
-				<p class="text-muted-foreground text-sm">Loading tokens...</p>
+				<!-- Skeleton loading state for tokens -->
+				<div class="space-y-6 animate-pulse">
+					{#each [1, 2, 3] as _}
+						<div>
+							<div class="h-4 w-32 bg-muted rounded mb-3"></div>
+							<div class="space-y-2">
+								{#each [1, 2, 3, 4] as __}
+									<div class="flex items-center gap-3">
+										<div class="h-5 w-28 bg-muted rounded"></div>
+										<div class="h-4 w-48 bg-muted rounded"></div>
+									</div>
+								{/each}
+							</div>
+						</div>
+					{/each}
+				</div>
+			{:else if tokensQuery.error}
+				<div class="rounded-md bg-destructive/10 p-4 text-sm">
+					<div class="flex items-center gap-2 text-destructive">
+						<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor" class="w-5 h-5">
+							<path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-8-5a.75.75 0 01.75.75v4.5a.75.75 0 01-1.5 0v-4.5A.75.75 0 0110 5zm0 10a1 1 0 100-2 1 1 0 000 2z" clip-rule="evenodd" />
+						</svg>
+						<span class="font-medium">Failed to load available tokens</span>
+					</div>
+				</div>
 			{:else if tokensQuery.data}
 				<div class="space-y-6">
 					<!-- Series Tokens -->
