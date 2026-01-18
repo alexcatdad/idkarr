@@ -1,7 +1,10 @@
 <script lang="ts">
 import { useQuery } from "convex-svelte";
+import AddRootFolderModal from "$lib/components/settings/AddRootFolderModal.svelte";
 import { Button } from "$lib/components/ui/button";
 import { api } from "../../convex/_generated/api";
+
+let showAddRootFolderModal = $state(false);
 
 // Settings queries
 const settingsQuery = useQuery(api.settings.get, {});
@@ -164,7 +167,7 @@ const sections = [
 						<h2 class="text-2xl font-bold">Media Management</h2>
 						<p class="text-muted-foreground">Configure root folders and naming</p>
 					</div>
-					<Button>Add Root Folder</Button>
+					<Button onclick={() => (showAddRootFolderModal = true)}>Add Root Folder</Button>
 				</div>
 
 				<div class="rounded-lg border bg-card">
@@ -670,4 +673,6 @@ const sections = [
 			</div>
 		{/if}
 	</div>
+
+	<AddRootFolderModal bind:open={showAddRootFolderModal} onClose={() => (showAddRootFolderModal = false)} />
 </div>
