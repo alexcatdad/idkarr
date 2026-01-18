@@ -23,6 +23,7 @@ const healthStatus = useQuery(api.systemHealth.getOverallStatus, {});
 // Navigation items
 const navItems = [
 	{ href: "/", label: "Dashboard", icon: "home" },
+	{ href: "/discovery", label: "Discover", icon: "compass" },
 	{ href: "/series", label: "Series", icon: "tv" },
 	{ href: "/movies", label: "Movies", icon: "film" },
 	{ href: "/music", label: "Music", icon: "music" },
@@ -80,6 +81,8 @@ let sidebarCollapsed = $state(false);
 							<span class="flex h-5 w-5 items-center justify-center">
 								{#if item.icon === "home"}
 									<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+								{:else if item.icon === "compass"}
+									<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
 								{:else if item.icon === "tv"}
 									<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="20" height="15" x="2" y="7" rx="2" ry="2"/><polyline points="17 2 12 7 7 2"/></svg>
 								{:else if item.icon === "film"}
