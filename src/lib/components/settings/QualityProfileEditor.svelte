@@ -23,11 +23,16 @@ const profileQuery = useQuery(api.qualityProfiles.get, () =>
 	profileId ? { id: profileId } : "skip",
 );
 
+// Load all custom formats for format scores
+const formatsQuery = useQuery(api.customFormats.list, {});
+
 // Form state
 let name = $state("");
 let upgradeAllowed = $state(true);
 let cutoffQualityId = $state<Id<"qualityDefinitions"> | null>(null);
 let items = $state<Array<{ qualityId: Id<"qualityDefinitions">; enabled: boolean }>>([]);
+let formatScores = $state<Map<Id<"customFormats">, number>>(new Map());
+let formatScoresExpanded = $state(false);
 
 let isSubmitting = $state(false);
 let error = $state<string | null>(null);
@@ -69,12 +74,22 @@ $effect(() => {
 				enabled: item.enabled,
 			}),
 		);
+		// Load format scores from the enriched profile data
+		const newFormatScores = new Map<Id<"customFormats">, number>();
+		if (profileQuery.data.formatScores) {
+			for (const scoreEntry of profileQuery.data.formatScores) {
+				newFormatScores.set(scoreEntry.formatId, scoreEntry.score);
+			}
+		}
+		formatScores = newFormatScores;
 		initialized = true;
 	} else if (!profileId && qualitiesQuery.data && qualitiesQuery.data.length > 0) {
 		// New profile - initialize with all qualities enabled, ordered by weight (descending for priority)
 		// Lower weight = lower quality, so we reverse to have higher qualities at the top
 		const sortedQualities = [...qualitiesQuery.data].sort((a, b) => b.weight - a.weight);
 		items = sortedQualities.map((q) => ({ qualityId: q._id, enabled: true }));
+		// Initialize empty format scores for new profile
+		formatScores = new Map();
 		initialized = true;
 	}
 });
@@ -116,6 +131,8 @@ async function handleSubmit() {
 	error = null;
 
 	try {
+		let savedProfileId: Id<"qualityProfiles">;
+
 		if (profileId) {
 			// Update existing profile
 			await client.mutation(api.qualityProfiles.update, {
@@ -125,15 +142,29 @@ async function handleSubmit() {
 				cutoffQualityId: cutoffQualityId ?? undefined,
 				items,
 			});
+			savedProfileId = profileId;
 		} else {
 			// Add new profile
-			await client.mutation(api.qualityProfiles.add, {
+			savedProfileId = await client.mutation(api.qualityProfiles.add, {
 				name: name.trim(),
 				upgradeAllowed,
 				cutoffQualityId: cutoffQualityId ?? undefined,
 				items,
 			});
 		}
+
+		// Save format scores (only non-zero scores)
+		const scoresToSave = Array.from(formatScores.entries())
+			.filter(([_, score]) => score !== 0)
+			.map(([formatId, score]) => ({ formatId, score }));
+
+		if (scoresToSave.length > 0) {
+			await client.mutation(api.qualityProfiles.bulkSetFormatScores, {
+				profileId: savedProfileId,
+				scores: scoresToSave,
+			});
+		}
+
 		resetForm();
 		onClose();
 	} catch (e) {
@@ -148,6 +179,8 @@ function resetForm() {
 	upgradeAllowed = true;
 	cutoffQualityId = null;
 	items = [];
+	formatScores = new Map();
+	formatScoresExpanded = false;
 	error = null;
 	initialized = false;
 }
@@ -191,6 +224,23 @@ function setCutoff(qualityId: Id<"qualityDefinitions">) {
 
 // Get enabled qualities for cutoff dropdown
 const enabledQualities = $derived(items.filter((item) => item.enabled));
+
+// Count non-zero format scores for the collapsible header
+const nonZeroScoresCount = $derived(
+	Array.from(formatScores.values()).filter((score) => score !== 0).length,
+);
+
+// Helper to update a format score
+function updateFormatScore(formatId: Id<"customFormats">, score: number) {
+	const newScores = new Map(formatScores);
+	newScores.set(formatId, score);
+	formatScores = newScores;
+}
+
+// Get the score for a format (default 0)
+function getFormatScore(formatId: Id<"customFormats">): number {
+	return formatScores.get(formatId) ?? 0;
+}
 
 const isEditing = $derived(!!profileId);
 const isLoading = $derived(
@@ -379,6 +429,74 @@ const isLoading = $derived(
 							</div>
 						{/if}
 					</div>
+				</div>
+
+				<!-- Custom Format Scores (Collapsible) -->
+				<div class="border rounded-lg">
+					<button
+						type="button"
+						onclick={() => (formatScoresExpanded = !formatScoresExpanded)}
+						class="w-full flex items-center justify-between px-4 py-3 hover:bg-muted/50 transition-colors"
+					>
+						<div class="flex items-center gap-2">
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								width="16"
+								height="16"
+								viewBox="0 0 24 24"
+								fill="none"
+								stroke="currentColor"
+								stroke-width="2"
+								stroke-linecap="round"
+								stroke-linejoin="round"
+								class="transition-transform duration-200"
+								class:rotate-90={formatScoresExpanded}
+							>
+								<polyline points="9 18 15 12 9 6"></polyline>
+							</svg>
+							<span class="text-sm font-medium">Custom Format Scores</span>
+						</div>
+						{#if nonZeroScoresCount > 0}
+							<span class="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full">
+								{nonZeroScoresCount} configured
+							</span>
+						{/if}
+					</button>
+
+					{#if formatScoresExpanded}
+						<div class="border-t px-4 py-3 space-y-3">
+							{#if formatsQuery.isLoading}
+								<p class="text-sm text-muted-foreground">Loading custom formats...</p>
+							{:else if !formatsQuery.data || formatsQuery.data.length === 0}
+								<p class="text-sm text-muted-foreground">
+									No custom formats defined. Create custom formats in Settings to score them here.
+								</p>
+							{:else}
+								<p class="text-xs text-muted-foreground mb-2">
+									Assign scores to custom formats. Positive scores prefer releases matching the format, negative scores avoid them.
+								</p>
+								<div class="grid gap-2 max-h-48 overflow-y-auto">
+									{#each formatsQuery.data as format}
+										<div class="flex items-center justify-between gap-4 py-1">
+											<label for="format-{format._id}" class="text-sm truncate flex-1" title={format.name}>
+												{format.name}
+											</label>
+											<input
+												id="format-{format._id}"
+												type="number"
+												value={getFormatScore(format._id)}
+												onchange={(e) => {
+													const target = e.target as HTMLInputElement;
+													updateFormatScore(format._id, parseInt(target.value, 10) || 0);
+												}}
+												class="w-20 rounded-lg border bg-background px-2 py-1 text-sm text-right tabular-nums focus:outline-none focus:ring-2 focus:ring-primary"
+											/>
+										</div>
+									{/each}
+								</div>
+							{/if}
+						</div>
+					{/if}
 				</div>
 
 				{#if error}
