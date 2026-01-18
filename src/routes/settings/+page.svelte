@@ -1,10 +1,22 @@
 <script lang="ts">
-import { useQuery } from "convex-svelte";
+import { useConvexClient, useQuery } from "convex-svelte";
 import AddRootFolderModal from "$lib/components/settings/AddRootFolderModal.svelte";
 import { Button } from "$lib/components/ui/button";
 import { api } from "../../convex/_generated/api";
+import type { Id } from "../../convex/_generated/dataModel";
 
 let showAddRootFolderModal = $state(false);
+
+const client = useConvexClient();
+
+async function deleteRootFolder(id: Id<"rootFolders">) {
+	if (!confirm("Delete this root folder?")) return;
+	try {
+		await client.mutation(api.rootFolders.remove, { id });
+	} catch (e) {
+		alert(e instanceof Error ? e.message : "Failed to delete");
+	}
+}
 
 // Settings queries
 const settingsQuery = useQuery(api.settings.get, {});
@@ -201,7 +213,7 @@ const sections = [
 											{/if}
 										</div>
 									</div>
-									<Button variant="ghost" size="icon">
+									<Button variant="ghost" size="icon" onclick={() => deleteRootFolder(folder._id)}>
 										<svg
 											xmlns="http://www.w3.org/2000/svg"
 											width="16"
