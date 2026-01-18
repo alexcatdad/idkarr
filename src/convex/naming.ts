@@ -267,11 +267,13 @@ export const deletePreset = mutation({
 
 // Token replacement helper
 function replaceTokens(
-	format: string,
+	format: string | undefined,
 	tokens: Record<string, string | number | undefined>,
-	replaceSpaces: boolean,
+	replaceSpaces: boolean | undefined,
 	spaceReplacement?: string,
 ): string {
+	if (!format) return "";
+
 	let result = format;
 
 	// Replace tokens with format specifiers like {Token:00}
@@ -292,7 +294,7 @@ function replaceTokens(
 	}
 
 	// Replace spaces if configured
-	if (replaceSpaces && spaceReplacement) {
+	if (replaceSpaces === true && spaceReplacement) {
 		result = result.replace(/ /g, spaceReplacement);
 	}
 

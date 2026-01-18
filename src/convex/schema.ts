@@ -156,31 +156,34 @@ export default defineSchema({
 
 		// TV Series naming formats
 		// Tokens: {Series Title}, {Series TitleYear}, {Season}, {Episode}, {Episode Title}, {Quality}, {Release Group}
-		seriesFolderFormat: v.string(), // e.g., "{Series Title} ({Year})"
-		seasonFolderFormat: v.string(), // e.g., "Season {Season:00}"
-		episodeFormat: v.string(), // e.g., "{Series Title} - S{Season:00}E{Episode:00} - {Episode Title}"
+		seriesFolderFormat: v.optional(v.string()), // e.g., "{Series Title} ({Year})"
+		seasonFolderFormat: v.optional(v.string()), // e.g., "Season {Season:00}"
+		episodeFormat: v.optional(v.string()), // e.g., "{Series Title} - S{Season:00}E{Episode:00} - {Episode Title}"
 
 		// Movie naming formats
 		// Tokens: {Movie Title}, {Year}, {Quality}, {Release Group}, {Edition}
-		movieFolderFormat: v.string(), // e.g., "{Movie Title} ({Year})"
-		movieFormat: v.string(), // e.g., "{Movie Title} ({Year}) {Quality}"
+		movieFolderFormat: v.optional(v.string()), // e.g., "{Movie Title} ({Year})"
+		movieFormat: v.optional(v.string()), // e.g., "{Movie Title} ({Year}) {Quality}"
 
 		// Music naming formats
 		// Tokens: {Artist Name}, {Album Title}, {Year}, {Track Number}, {Track Title}, {Quality}
-		artistFolderFormat: v.string(), // e.g., "{Artist Name}"
-		albumFolderFormat: v.string(), // e.g., "{Album Title} ({Year})"
-		trackFormat: v.string(), // e.g., "{Track Number:00} - {Track Title}"
+		artistFolderFormat: v.optional(v.string()), // e.g., "{Artist Name}"
+		albumFolderFormat: v.optional(v.string()), // e.g., "{Album Title} ({Year})"
+		trackFormat: v.optional(v.string()), // e.g., "{Track Number:00} - {Track Title}"
 
 		// Anime uses series formats with additional tokens: {Absolute Episode}, {Release Group}
 
-		// Options
-		replaceSpaces: v.boolean(), // Replace spaces with dots or underscores
-		spaceReplacement: v.optional(v.string()), // "." or "_" or leave empty
+		// Common settings
+		replaceSpaces: v.optional(v.boolean()), // Replace spaces with dots or underscores
+		spaceReplacement: v.optional(v.string()), // Character to replace spaces with (e.g., ".", "_")
+		colonReplacement: v.optional(v.string()), // What to replace colons with (e.g., " -", "", etc.)
 
 		// Timestamps
 		createdAt: v.number(),
 		updatedAt: v.number(),
-	}).index("by_name", ["name"]),
+	})
+		.index("by_name", ["name"])
+		.index("by_type", ["type"]),
 
 	// -------------------------------------------------------------------------
 	// Quality Definitions - defines quality tiers (HDTV, WEB-DL, BluRay, etc.)
