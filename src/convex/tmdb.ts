@@ -3,6 +3,9 @@ import { action } from "./_generated/server";
 
 // TMDB API configuration
 const TMDB_API_BASE = "https://api.themoviedb.org/3";
+// Default API key for idkarr - users can override via TMDB_API_KEY env var
+// Attribution: https://www.themoviedb.org/about/logos-attribution
+const TMDB_DEFAULT_KEY = "9329315a5f7b4bc259395953d46c96be";
 
 // Search movies on TMDB
 export const searchMovies = action({
@@ -11,10 +14,7 @@ export const searchMovies = action({
 		page: v.optional(v.number()),
 	},
 	handler: async (_ctx, args) => {
-		const apiKey = process.env.TMDB_API_KEY;
-		if (!apiKey) {
-			return { results: [], totalPages: 0, totalResults: 0, notConfigured: true };
-		}
+		const apiKey = process.env.TMDB_API_KEY || TMDB_DEFAULT_KEY;
 
 		const page = args.page ?? 1;
 		const url = `${TMDB_API_BASE}/search/movie?api_key=${apiKey}&query=${encodeURIComponent(args.query)}&page=${page}`;
@@ -58,10 +58,7 @@ export const getMovieDetails = action({
 		tmdbId: v.number(),
 	},
 	handler: async (_ctx, args) => {
-		const apiKey = process.env.TMDB_API_KEY;
-		if (!apiKey) {
-			return null;
-		}
+		const apiKey = process.env.TMDB_API_KEY || TMDB_DEFAULT_KEY;
 
 		const url = `${TMDB_API_BASE}/movie/${args.tmdbId}?api_key=${apiKey}&append_to_response=credits,external_ids,release_dates`;
 
@@ -122,10 +119,7 @@ export const searchTV = action({
 		page: v.optional(v.number()),
 	},
 	handler: async (_ctx, args) => {
-		const apiKey = process.env.TMDB_API_KEY;
-		if (!apiKey) {
-			return { results: [], totalPages: 0, totalResults: 0, notConfigured: true };
-		}
+		const apiKey = process.env.TMDB_API_KEY || TMDB_DEFAULT_KEY;
 
 		const page = args.page ?? 1;
 		const url = `${TMDB_API_BASE}/search/tv?api_key=${apiKey}&query=${encodeURIComponent(args.query)}&page=${page}`;
@@ -166,10 +160,7 @@ export const getTVDetails = action({
 		tmdbId: v.number(),
 	},
 	handler: async (_ctx, args) => {
-		const apiKey = process.env.TMDB_API_KEY;
-		if (!apiKey) {
-			return null;
-		}
+		const apiKey = process.env.TMDB_API_KEY || TMDB_DEFAULT_KEY;
 
 		const url = `${TMDB_API_BASE}/tv/${args.tmdbId}?api_key=${apiKey}&append_to_response=external_ids,content_ratings`;
 

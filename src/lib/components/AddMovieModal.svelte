@@ -18,25 +18,18 @@ let searchResults = $state<any[]>([]);
 let isSearching = $state(false);
 let isAdding = $state(false);
 let error = $state<string | null>(null);
-let notConfigured = $state(false);
 
 async function handleSearch() {
 	if (!searchQuery.trim()) return;
 
 	isSearching = true;
 	error = null;
-	notConfigured = false;
 
 	try {
 		const results = await client.action(api.tmdb.searchMovies, {
 			query: searchQuery,
 		});
-		if (results.notConfigured) {
-			notConfigured = true;
-			searchResults = [];
-		} else {
-			searchResults = results.results;
-		}
+		searchResults = results.results;
 	} catch (e) {
 		error = e instanceof Error ? e.message : "Search failed";
 	} finally {
@@ -148,22 +141,7 @@ function handleKeydown(e: KeyboardEvent) {
 
 			<!-- Results -->
 			<div class="overflow-y-auto max-h-[50vh] p-4">
-				{#if notConfigured}
-					<div class="text-center py-8 space-y-3">
-						<p class="text-muted-foreground">TMDB API key not configured</p>
-						<p class="text-sm text-muted-foreground">
-							To search for movies, add <code class="px-1.5 py-0.5 rounded bg-muted">TMDB_API_KEY</code> to your Convex environment variables.
-						</p>
-						<a
-							href="https://www.themoviedb.org/settings/api"
-							target="_blank"
-							rel="noopener noreferrer"
-							class="text-sm text-primary hover:underline"
-						>
-							Get a free TMDB API key →
-						</a>
-					</div>
-				{:else if searchResults.length === 0}
+				{#if searchResults.length === 0}
 					<p class="text-center text-muted-foreground py-8">
 						{isSearching ? "Searching..." : "Search for a movie to add to your library"}
 					</p>
